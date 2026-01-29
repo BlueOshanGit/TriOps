@@ -1,0 +1,44 @@
+Commands to Run Tomorrow (Every Time You Start)
+
+  Open 3 terminals and run:
+                                          
+  Terminal 1: Start the Server
+                                                                                                        cd C:\Users\Srikumaran\Desktop\hubspot-codeflow
+  npm run dev                                                                                         
+  
+  Terminal 2: Start ngrok
+
+  ngrok http 3100
+
+  Terminal 3: (Only if you make code changes)
+
+  cd C:\Users\Srikumaran\Desktop\hubspot-codeflow\codeflow-project
+  hs project upload
+  hs project deploy --build=<number>
+
+  ---
+  Quick Summary
+  ┌───────────────┬────────────────────────────────────────┬────────────────────────────────────┐     
+  │     What      │                Command                 │            When to Run             │     
+  ├───────────────┼────────────────────────────────────────┼────────────────────────────────────┤     
+  │ Server        │ npm run dev                            │ Every time                         │     
+  ├───────────────┼────────────────────────────────────────┼────────────────────────────────────┤     
+  │ ngrok         │ ngrok http 3100                        │ Every time                         │     
+  ├───────────────┼────────────────────────────────────────┼────────────────────────────────────┤     
+  │ Upload/Deploy │ hs project upload && hs project deploy │ Only when you change project files │     
+  └───────────────┴────────────────────────────────────────┴────────────────────────────────────┘     
+  ---
+  Important Note About ngrok
+
+  ⚠️ Free ngrok gives a new URL each time!
+
+  Tomorrow when you start ngrok, you'll get a different URL. You'll need to:
+
+  1. Copy the new ngrok URL
+  2. Update .env file: BASE_URL=https://new-url.ngrok-free.dev
+  3. Update codeflow-project/src/app/workflow-actions/workflow-actions-hsmeta.json: change actionUrl  
+  4. Update codeflow-project/src/app/CodeFlow-hsmeta.json: change redirectUrls
+  5. Run hs project upload && hs project deploy
+
+  ---
+  Now go check HubSpot workflows and search for "CodeFlow"! 🎉

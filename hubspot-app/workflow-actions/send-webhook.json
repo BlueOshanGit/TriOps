@@ -1,0 +1,145 @@
+{
+  "actionType": "WEBHOOK",
+  "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/webhook",
+  "published": true,
+  "labels": {
+    "en": {
+      "actionName": "CodeFlow: Send Webhook",
+      "actionDescription": "Send an HTTP request to any URL with dynamic data from the workflow",
+      "actionCardContent": "Send webhook to {{webhookUrl}}"
+    }
+  },
+  "inputFields": [
+    {
+      "typeDefinition": {
+        "name": "webhookUrl",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "isRequired": true,
+      "labels": {
+        "en": {
+          "label": "Webhook URL",
+          "description": "The URL to send the request to. Supports {{handlebars}} templates."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "webhookMethod",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "POST", "label": "POST" },
+          { "value": "GET", "label": "GET" },
+          { "value": "PUT", "label": "PUT" },
+          { "value": "PATCH", "label": "PATCH" },
+          { "value": "DELETE", "label": "DELETE" }
+        ]
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "HTTP Method",
+          "description": "The HTTP method to use. Defaults to POST."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "webhookHeaders",
+        "type": "string",
+        "fieldType": "textarea"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Headers (JSON)",
+          "description": "Custom headers as JSON object. Example: {\"Authorization\": \"Bearer {{token}}\"}"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "webhookBody",
+        "type": "string",
+        "fieldType": "textarea"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Request Body (JSON)",
+          "description": "The request body as JSON. Supports {{handlebars}} templates. If empty, sends object data."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "outputMappings",
+        "type": "string",
+        "fieldType": "textarea"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Output Mappings (JSON)",
+          "description": "Map response fields to outputs. Example: [{\"outputFieldName\": \"userId\", \"jsonPath\": \"data.id\"}]"
+        }
+      }
+    }
+  ],
+  "outputFields": [
+    {
+      "typeDefinition": {
+        "name": "codeflow_success",
+        "type": "bool"
+      },
+      "labels": {
+        "en": {
+          "label": "Success"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "codeflow_status_code",
+        "type": "number"
+      },
+      "labels": {
+        "en": {
+          "label": "HTTP Status Code"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "codeflow_error",
+        "type": "string"
+      },
+      "labels": {
+        "en": {
+          "label": "Error Message"
+        }
+      }
+    }
+  ],
+  "executionRules": [
+    {
+      "labelName": "Continue on success",
+      "conditions": {
+        "codeflow_success": true
+      }
+    },
+    {
+      "labelName": "Handle error",
+      "conditions": {
+        "codeflow_success": false
+      }
+    }
+  ]
+}

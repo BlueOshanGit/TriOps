@@ -1,0 +1,160 @@
+{
+  "actionType": "WEBHOOK",
+  "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/code",
+  "published": true,
+  "labels": {
+    "en": {
+      "actionName": "CodeFlow: Run Code",
+      "actionDescription": "Execute custom JavaScript code with access to workflow data and secrets",
+      "actionCardContent": "Run code snippet: {{snippetId}}"
+    }
+  },
+  "inputFields": [
+    {
+      "typeDefinition": {
+        "name": "snippetId",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Snippet ID",
+          "description": "The ID of a saved code snippet to execute. Find IDs in CodeFlow settings."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "inlineCode",
+        "type": "string",
+        "fieldType": "textarea"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Inline Code",
+          "description": "JavaScript code to execute. Use 'inputs' to access input fields, 'secrets' for stored secrets, 'output' to set return values."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "input1",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Input 1",
+          "description": "Custom input available as inputs.input1 in code"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "input2",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Input 2",
+          "description": "Custom input available as inputs.input2 in code"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "input3",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Input 3",
+          "description": "Custom input available as inputs.input3 in code"
+        }
+      }
+    }
+  ],
+  "outputFields": [
+    {
+      "typeDefinition": {
+        "name": "codeflow_success",
+        "type": "bool"
+      },
+      "labels": {
+        "en": {
+          "label": "Success"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "codeflow_error",
+        "type": "string"
+      },
+      "labels": {
+        "en": {
+          "label": "Error Message"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "output1",
+        "type": "string"
+      },
+      "labels": {
+        "en": {
+          "label": "Output 1"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "output2",
+        "type": "string"
+      },
+      "labels": {
+        "en": {
+          "label": "Output 2"
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "output3",
+        "type": "string"
+      },
+      "labels": {
+        "en": {
+          "label": "Output 3"
+        }
+      }
+    }
+  ],
+  "executionRules": [
+    {
+      "labelName": "Continue on success",
+      "conditions": {
+        "codeflow_success": true
+      }
+    },
+    {
+      "labelName": "Handle error",
+      "conditions": {
+        "codeflow_success": false
+      }
+    }
+  ]
+}

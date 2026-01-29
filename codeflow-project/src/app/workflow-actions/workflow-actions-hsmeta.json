@@ -1,0 +1,91 @@
+{
+  "uid": "codeflow_send_webhook",
+  "type": "workflow-action",
+  "config": {
+    "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/simple-webhook",
+    "isPublished": true,
+    "supportedClients": [
+      {
+        "client": "WORKFLOWS"
+      }
+    ],
+    "inputFields": [
+      {
+        "typeDefinition": {
+          "name": "webhookUrl",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      },
+      {
+        "typeDefinition": {
+          "name": "webhookMethod",
+          "type": "enumeration",
+          "fieldType": "select",
+          "options": [
+            { "value": "POST", "label": "POST" },
+            { "value": "GET", "label": "GET" },
+            { "value": "PUT", "label": "PUT" },
+            { "value": "DELETE", "label": "DELETE" }
+          ]
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": false
+      },
+      {
+        "typeDefinition": {
+          "name": "webhookBody",
+          "type": "string",
+          "fieldType": "textarea"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": false
+      }
+    ],
+    "outputFields": [
+      {
+        "typeDefinition": {
+          "name": "success",
+          "type": "bool"
+        }
+      },
+      {
+        "typeDefinition": {
+          "name": "statusCode",
+          "type": "number"
+        }
+      },
+      {
+        "typeDefinition": {
+          "name": "error",
+          "type": "string"
+        }
+      }
+    ],
+    "labels": {
+      "en": {
+        "actionName": "CodeFlow: Send Webhook",
+        "actionDescription": "Send data to an external webhook URL with custom method and body",
+        "actionCardContent": "Send {{webhookMethod}} request to {{webhookUrl}}",
+        "inputFieldLabels": {
+          "webhookUrl": "Webhook URL",
+          "webhookMethod": "HTTP Method",
+          "webhookBody": "Request Body (JSON)"
+        },
+        "inputFieldDescriptions": {
+          "webhookUrl": "The URL to send the webhook request to",
+          "webhookMethod": "The HTTP method to use (default: POST)",
+          "webhookBody": "Custom JSON body to send with the request"
+        },
+        "outputFieldLabels": {
+          "success": "Success",
+          "statusCode": "HTTP Status Code",
+          "error": "Error Message"
+        }
+      }
+    },
+    "objectTypes": ["CONTACT", "COMPANY", "DEAL"]
+  }
+}

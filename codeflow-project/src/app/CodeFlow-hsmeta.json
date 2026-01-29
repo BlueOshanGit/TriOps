@@ -1,0 +1,33 @@
+{
+  "config": {
+    "auth": {
+      "type": "oauth",
+      "redirectUrls": [
+        "https://reena-noncorroborating-readily.ngrok-free.dev/oauth/callback"
+      ],
+      "optionalScopes": [],
+      "requiredScopes": [
+        "automation",
+        "crm.objects.companies.write",
+        "crm.objects.contacts.write",
+        "crm.objects.deals.read",
+        "crm.objects.companies.read",
+        "crm.objects.deals.write",
+        "oauth",
+        "crm.objects.contacts.read"
+      ],
+      "conditionallyRequiredScopes": []
+    },
+    "name": "CodeFlow",
+    "description": "Custom code and webhook execution for workflows",
+    "isUserLevel": false,
+    "distribution": "MARKETPLACE",
+    "permittedUrls": {
+      "img": [],
+      "fetch": ["https://reena-noncorroborating-readily.ngrok-free.dev"],
+      "iframe": []
+    }
+  },
+  "uid": "CodeFlow",
+  "type": "app"
+}
