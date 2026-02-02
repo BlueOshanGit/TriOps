@@ -7,7 +7,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/v1': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3100',
+        changeOrigin: true
+      },
+      '/oauth': {
+        target: 'http://localhost:3100',
         changeOrigin: true
       }
     }

@@ -17,16 +17,18 @@ function Usage() {
   const loadData = async () => {
     try {
       setLoading(true)
+      setError(null)
       const [usageRes, resourcesRes, snippetsRes] = await Promise.all([
         usageApi.get(days),
         usageApi.getResources(),
         usageApi.getTopSnippets()
       ])
-      setUsage(usageRes.data)
-      setResources(resourcesRes.data)
-      setTopSnippets(snippetsRes.data.snippets)
+      setUsage(usageRes.data || {})
+      setResources(resourcesRes.data || null)
+      setTopSnippets(snippetsRes.data?.snippets || [])
     } catch (err) {
-      setError(err.message)
+      console.error('Usage data load error:', err)
+      setError(err.message || 'Failed to load usage data')
     } finally {
       setLoading(false)
     }
@@ -117,21 +119,23 @@ function Usage() {
             <CardTitle>Resource Limits</CardTitle>
           </CardHeader>
 
-          {resources && (
+          {resources ? (
             <div className="space-y-4">
               <ResourceBar
                 label="Snippets"
-                current={resources.snippets.current}
-                limit={resources.snippets.limit}
-                percent={resources.snippets.percentUsed}
+                current={resources.snippets?.current || 0}
+                limit={resources.snippets?.limit || 100}
+                percent={resources.snippets?.percentUsed || 0}
               />
               <ResourceBar
                 label="Secrets"
-                current={resources.secrets.current}
-                limit={resources.secrets.limit}
-                percent={resources.secrets.percentUsed}
+                current={resources.secrets?.current || 0}
+                limit={resources.secrets?.limit || 50}
+                percent={resources.secrets?.percentUsed || 0}
               />
             </div>
+          ) : (
+            <p className="text-hubspot-gray text-sm">No resource data available</p>
           )}
         </Card>
 
@@ -191,15 +195,15 @@ function Usage() {
 
             <div className="h-48 flex items-end gap-1">
               {usage.dailyUsage.map((day, i) => {
-                const total = day.webhookExecutions + day.codeExecutions
-                const maxTotal = Math.max(...usage.dailyUsage.map(d => d.webhookExecutions + d.codeExecutions))
+                const total = (day.webhookExecutions || 0) + (day.codeExecutions || 0)
+                const maxTotal = Math.max(...usage.dailyUsage.map(d => (d.webhookExecutions || 0) + (d.codeExecutions || 0)), 1)
                 const height = maxTotal > 0 ? (total / maxTotal) * 100 : 0
 
                 return (
                   <div
                     key={i}
                     className="flex-1 flex flex-col justify-end"
-                    title={`${new Date(day.date).toLocaleDateString()}: ${total} executions`}
+                    title={`${day.date ? new Date(day.date).toLocaleDateString() : 'Unknown'}: ${total} executions`}
                   >
                     <div
                       className="bg-hubspot-orange rounded-t transition-all hover:bg-hubspot-orange-dark"
@@ -210,8 +214,8 @@ function Usage() {
               })}
             </div>
             <div className="flex justify-between mt-2 text-xs text-hubspot-gray">
-              <span>{new Date(usage.dailyUsage[0]?.date).toLocaleDateString()}</span>
-              <span>{new Date(usage.dailyUsage[usage.dailyUsage.length - 1]?.date).toLocaleDateString()}</span>
+              <span>{usage.dailyUsage[0]?.date ? new Date(usage.dailyUsage[0].date).toLocaleDateString() : ''}</span>
+              <span>{usage.dailyUsage[usage.dailyUsage.length - 1]?.date ? new Date(usage.dailyUsage[usage.dailyUsage.length - 1].date).toLocaleDateString() : ''}</span>
             </div>
           </Card>
         )}

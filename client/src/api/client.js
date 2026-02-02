@@ -93,7 +93,7 @@ export const snippetsApi = {
   },
 
   test(id, inputs) {
-    return api.post('/v1/snippets/test', { snippetId: id, inputs })
+    return api.post(`/v1/snippets/${id}/test`, { inputs })
   }
 }
 
@@ -131,16 +131,16 @@ export const logsApi = {
     return api.get(`/v1/logs/${id}`)
   },
 
-  getStats() {
-    return api.get('/v1/logs?stats=summary')
+  getStats(days = 7) {
+    return api.get(`/v1/logs/stats/summary?days=${days}`)
   },
 
   getDailyStats(days = 7) {
-    return api.get(`/v1/logs?stats=daily&days=${days}`)
+    return api.get(`/v1/logs/stats/daily?days=${days}`)
   },
 
-  getRecentErrors() {
-    return api.get('/v1/logs?status=error&limit=10')
+  getRecentErrors(limit = 10) {
+    return api.get(`/v1/logs/errors/recent?limit=${limit}`)
   }
 }
 
@@ -151,15 +151,19 @@ export const usageApi = {
   },
 
   getResources() {
-    return api.get('/v1/usage?type=resources')
+    return api.get('/v1/usage/resources')
   },
 
   getTopSnippets() {
-    return api.get('/v1/usage?type=top-snippets')
+    return api.get('/v1/usage/top-snippets')
   },
 
-  getWorkflows() {
-    return api.get('/v1/usage?type=workflows')
+  getWorkflows(days = 30) {
+    return api.get(`/v1/usage/workflows?days=${days}`)
+  },
+
+  getHourly(days = 7) {
+    return api.get(`/v1/usage/hourly?days=${days}`)
   }
 }
 
