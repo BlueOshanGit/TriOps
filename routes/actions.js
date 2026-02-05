@@ -393,6 +393,10 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         result = String(input1 || '').trim();
         break;
 
+      case 'trimwhitespace':
+        result = String(input1 || '').replace(/\s+/g, '');
+        break;
+
       case 'concat':
         result = String(input1 || '') + String(input2 || '') + String(input3 || '');
         break;

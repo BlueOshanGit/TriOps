@@ -8,7 +8,7 @@ const executionSchema = new mongoose.Schema({
   },
   actionType: {
     type: String,
-    enum: ['webhook', 'code'],
+    enum: ['webhook', 'code', 'format'],
     required: true
   },
   // For code actions

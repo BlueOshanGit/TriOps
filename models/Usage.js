@@ -18,6 +18,10 @@ const usageSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  formatExecutions: {
+    type: Number,
+    default: 0
+  },
   successCount: {
     type: Number,
     default: 0
@@ -70,9 +74,12 @@ usageSchema.statics.recordExecution = async function(portalId, executionData) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const actionTypeField = executionData.actionType === 'webhook' ? 'webhookExecutions'
+    : executionData.actionType === 'format' ? 'formatExecutions' : 'codeExecutions';
+
   const update = {
     $inc: {
-      [executionData.actionType === 'webhook' ? 'webhookExecutions' : 'codeExecutions']: 1,
+      [actionTypeField]: 1,
       [`${executionData.status}Count`]: 1,
       totalExecutionTimeMs: executionData.executionTimeMs || 0
     },
@@ -93,7 +100,7 @@ usageSchema.statics.recordExecution = async function(portalId, executionData) {
   );
 
   // Update average execution time
-  const totalExecutions = usage.webhookExecutions + usage.codeExecutions;
+  const totalExecutions = usage.webhookExecutions + usage.codeExecutions + (usage.formatExecutions || 0);
   if (totalExecutions > 0) {
     usage.avgExecutionTimeMs = Math.round(usage.totalExecutionTimeMs / totalExecutions);
     usage.uniqueWorkflows = usage.workflowIds.length;
