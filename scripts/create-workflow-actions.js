@@ -2,7 +2,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const axios = require('axios');
 
 const APP_ID = process.env.HUBSPOT_APP_ID;
-const DEVELOPER_API_KEY = process.env.HUBSPOT_DEVELOPER_API_KEY;
+const DEVELOPER_API_KEY = process.env.HUBSPOT_API_KEY;
 const BASE_URL = process.env.BASE_URL;
 
 async function createWorkflowActions() {
@@ -164,6 +164,55 @@ async function createWorkflowActions() {
             en: { label: 'Error Message' }
           }
         }
+      ]
+    },
+    {
+      actionUrl: `${BASE_URL}/v1/actions/format`,
+      objectTypes: ['CONTACT', 'COMPANY', 'DEAL', 'TICKET'],
+      published: true,
+      labels: {
+        en: {
+          actionName: 'CodeFlow: Custom Formula',
+          actionDescription: 'Write custom formulas to transform data using functions, math, and property values',
+          actionCardContent: 'Custom formula'
+        }
+      },
+      inputFields: [
+        {
+          typeDefinition: { name: 'formula', type: 'string', fieldType: 'textarea' },
+          supportedValueTypes: ['STATIC_VALUE'],
+          isRequired: true,
+          labels: {
+            en: {
+              label: 'Formula',
+              description: 'Use {{property}} for values. Functions: concat(), upper(), lower(), trim(), if(), round(), +, -, *, /'
+            }
+          }
+        },
+        {
+          typeDefinition: { name: 'input1', type: 'string', fieldType: 'text' },
+          supportedValueTypes: ['OBJECT_PROPERTY'],
+          isRequired: false,
+          labels: { en: { label: 'Property 1', description: 'Select a property. Use as [[input1]] in your formula' } }
+        },
+        {
+          typeDefinition: { name: 'input2', type: 'string', fieldType: 'text' },
+          supportedValueTypes: ['OBJECT_PROPERTY'],
+          isRequired: false,
+          labels: { en: { label: 'Property 2', description: 'Select a property. Use as [[input2]] in your formula' } }
+        },
+        {
+          typeDefinition: { name: 'input3', type: 'string', fieldType: 'text' },
+          supportedValueTypes: ['OBJECT_PROPERTY'],
+          isRequired: false,
+          labels: { en: { label: 'Property 3', description: 'Select a property. Use as [[input3]] in your formula' } }
+        }
+      ],
+      outputFields: [
+        { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+        { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+        { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
+        { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
       ]
     }
   ];

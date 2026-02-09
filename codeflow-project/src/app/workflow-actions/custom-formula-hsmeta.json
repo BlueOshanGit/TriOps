@@ -1,0 +1,103 @@
+{
+  "uid": "codeflow_custom_formula",
+  "type": "workflow-action",
+  "config": {
+    "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/format",
+    "isPublished": true,
+    "supportedClients": [
+      {
+        "client": "WORKFLOWS"
+      }
+    ],
+    "inputFields": [
+      {
+        "typeDefinition": {
+          "name": "formula",
+          "type": "string",
+          "fieldType": "textarea"
+        },
+        "supportedValueTypes": ["STATIC_VALUE"],
+        "isRequired": true
+      },
+      {
+        "typeDefinition": {
+          "name": "input1",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["OBJECT_PROPERTY"],
+        "isRequired": false
+      },
+      {
+        "typeDefinition": {
+          "name": "input2",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["OBJECT_PROPERTY"],
+        "isRequired": false
+      },
+      {
+        "typeDefinition": {
+          "name": "input3",
+          "type": "string",
+          "fieldType": "text"
+        },
+        "supportedValueTypes": ["OBJECT_PROPERTY"],
+        "isRequired": false
+      }
+    ],
+    "outputFields": [
+      {
+        "typeDefinition": {
+          "name": "codeflow_success",
+          "type": "bool"
+        }
+      },
+      {
+        "typeDefinition": {
+          "name": "codeflow_error",
+          "type": "string"
+        }
+      },
+      {
+        "typeDefinition": {
+          "name": "result",
+          "type": "string"
+        }
+      },
+      {
+        "typeDefinition": {
+          "name": "result_number",
+          "type": "number"
+        }
+      }
+    ],
+    "labels": {
+      "en": {
+        "actionName": "CodeFlow: Custom Formula",
+        "actionDescription": "Transform data with custom formulas using built-in functions and math",
+        "actionCardContent": "Custom formula",
+        "inputFieldLabels": {
+          "formula": "Formula",
+          "input1": "Property 1",
+          "input2": "Property 2",
+          "input3": "Property 3"
+        },
+        "inputFieldDescriptions": {
+          "formula": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more",
+          "input1": "Select a property to use in your formula",
+          "input2": "Select a property to use in your formula",
+          "input3": "Select a property to use in your formula"
+        },
+        "outputFieldLabels": {
+          "codeflow_success": "Success",
+          "codeflow_error": "Error Message",
+          "result": "Formula Result",
+          "result_number": "Result (Number)"
+        }
+      }
+    },
+    "objectTypes": ["CONTACT", "COMPANY", "DEAL", "TICKET"]
+  }
+}

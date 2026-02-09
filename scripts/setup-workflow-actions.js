@@ -2,7 +2,7 @@ require('dotenv').config();
 const axios = require('axios');
 
 const HUBSPOT_APP_ID = process.env.HUBSPOT_APP_ID;
-const HUBSPOT_DEVELOPER_API_KEY = process.env.HUBSPOT_DEVELOPER_API_KEY;
+const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const BASE_URL = process.env.BASE_URL;
 
 const HUBSPOT_API = 'https://api.hubapi.com';
@@ -111,6 +111,134 @@ const actions = [
       { typeDefinition: { name: 'codeflow_status_code', type: 'number' }, labels: { en: { label: 'HTTP Status Code' } } },
       { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } }
     ]
+  },
+  {
+    actionUrl: `${BASE_URL}/v1/actions/format`,
+    published: true,
+    labels: {
+      en: {
+        actionName: 'CodeFlow: Format Data',
+        actionDescription: 'Format and transform data - text, numbers, dates, and calculations',
+        actionCardContent: 'Format: {{operation}}'
+      }
+    },
+    inputFields: [
+      {
+        typeDefinition: {
+          name: 'operation',
+          type: 'enumeration',
+          fieldType: 'select',
+          options: [
+            { value: 'uppercase', label: 'Text: UPPERCASE' },
+            { value: 'lowercase', label: 'Text: lowercase' },
+            { value: 'capitalize', label: 'Text: Capitalize Each Word' },
+            { value: 'trim', label: 'Text: Trim Whitespace' },
+            { value: 'concat', label: 'Text: Concatenate' },
+            { value: 'substring', label: 'Text: Extract Substring' },
+            { value: 'replace', label: 'Text: Find & Replace' },
+            { value: 'split', label: 'Text: Split by Delimiter' },
+            { value: 'length', label: 'Text: Get Length' },
+            { value: 'number_format', label: 'Number: Format with Decimals' },
+            { value: 'currency', label: 'Number: Format as Currency' },
+            { value: 'percentage', label: 'Number: Format as Percentage' },
+            { value: 'round', label: 'Number: Round' },
+            { value: 'floor', label: 'Number: Round Down' },
+            { value: 'ceil', label: 'Number: Round Up' },
+            { value: 'abs', label: 'Number: Absolute Value' },
+            { value: 'add', label: 'Math: Add' },
+            { value: 'subtract', label: 'Math: Subtract' },
+            { value: 'multiply', label: 'Math: Multiply' },
+            { value: 'divide', label: 'Math: Divide' },
+            { value: 'date_format', label: 'Date: Format' },
+            { value: 'date_add', label: 'Date: Add Days' },
+            { value: 'date_subtract', label: 'Date: Subtract Days' },
+            { value: 'date_diff', label: 'Date: Days Between' },
+            { value: 'now', label: 'Date: Current Date/Time' },
+            { value: 'json_get', label: 'JSON: Get Value' },
+            { value: 'json_stringify', label: 'JSON: Convert to String' },
+            { value: 'json_parse', label: 'JSON: Parse String' },
+            { value: 'default_value', label: 'Logic: Default Value (if empty)' },
+            { value: 'conditional', label: 'Logic: If/Then/Else' }
+          ]
+        },
+        supportedValueTypes: ['STATIC_VALUE'],
+        isRequired: true,
+        labels: { en: { label: 'Operation', description: 'The formatting operation to perform' } }
+      },
+      {
+        typeDefinition: { name: 'input1', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: true,
+        labels: { en: { label: 'Input Value', description: 'The primary value to format or transform' } }
+      },
+      {
+        typeDefinition: { name: 'input2', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: false,
+        labels: { en: { label: 'Second Value / Parameter', description: 'Second value for concat, math, find/replace, etc.' } }
+      },
+      {
+        typeDefinition: { name: 'input3', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: false,
+        labels: { en: { label: 'Third Value / Parameter', description: 'Third value for conditional, replace, etc.' } }
+      },
+      {
+        typeDefinition: { name: 'formatOptions', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['STATIC_VALUE'],
+        isRequired: false,
+        labels: { en: { label: 'Format Options', description: 'Additional options: decimal places, currency code, date format, etc.' } }
+      }
+    ],
+    outputFields: [
+      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formatted Result' } } },
+      { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
+    ]
+  },
+  {
+    actionUrl: `${BASE_URL}/v1/actions/format`,
+    published: true,
+    labels: {
+      en: {
+        actionName: 'CodeFlow: Custom Formula',
+        actionDescription: 'Write custom formulas to transform data using functions, math, and property values',
+        actionCardContent: 'Custom formula'
+      }
+    },
+    inputFields: [
+      {
+        typeDefinition: { name: 'formula', type: 'string', fieldType: 'textarea' },
+        supportedValueTypes: ['STATIC_VALUE'],
+        isRequired: true,
+        labels: { en: { label: 'Formula', description: 'Use {{property}} for values. Functions: concat(), upper(), lower(), trim(), if(), round(), +, -, *, /' } }
+      },
+      {
+        typeDefinition: { name: 'input1', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: false,
+        labels: { en: { label: 'Property 1', description: 'Select a property. Use as [[input1]] in your formula' } }
+      },
+      {
+        typeDefinition: { name: 'input2', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: false,
+        labels: { en: { label: 'Property 2', description: 'Select a property. Use as [[input2]] in your formula' } }
+      },
+      {
+        typeDefinition: { name: 'input3', type: 'string', fieldType: 'text' },
+        supportedValueTypes: ['OBJECT_PROPERTY'],
+        isRequired: false,
+        labels: { en: { label: 'Property 3', description: 'Select a property. Use as [[input3]] in your formula' } }
+      }
+    ],
+    outputFields: [
+      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
+      { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
+    ]
   }
 ];
 
@@ -121,7 +249,7 @@ async function createWorkflowAction(action) {
       action,
       {
         headers: {
-          'Authorization': `Bearer ${HUBSPOT_DEVELOPER_API_KEY}`,
+          'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
@@ -145,7 +273,7 @@ async function listExistingActions() {
       `${HUBSPOT_API}/automation/v4/actions/${HUBSPOT_APP_ID}`,
       {
         headers: {
-          'Authorization': `Bearer ${HUBSPOT_DEVELOPER_API_KEY}`
+          'Authorization': `Bearer ${HUBSPOT_API_KEY}`
         }
       }
     );
@@ -167,12 +295,12 @@ async function main() {
     process.exit(1);
   }
 
-  if (!HUBSPOT_DEVELOPER_API_KEY) {
-    console.error('Error: HUBSPOT_DEVELOPER_API_KEY is not set in .env');
+  if (!HUBSPOT_API_KEY) {
+    console.error('Error: HUBSPOT_API_KEY is not set in .env');
     console.log('\nTo get your Developer API Key:');
     console.log('1. Go to https://app.hubspot.com/developer/YOUR_DEV_ACCOUNT_ID/api-key');
     console.log('2. Create or copy your Developer API Key');
-    console.log('3. Add to .env: HUBSPOT_DEVELOPER_API_KEY=your_key_here\n');
+    console.log('3. Add to .env: HUBSPOT_API_KEY=your_key_here\n');
     process.exit(1);
   }
 
@@ -205,8 +333,8 @@ async function main() {
   console.log('\nNext steps:');
   console.log('1. Go to your HubSpot workflow');
   console.log('2. Add a new action');
-  console.log('3. Look for "CodeFlow: Run Code" or "CodeFlow: Send Webhook"');
-  console.log('4. Configure with your snippet ID or webhook URL\n');
+  console.log('3. Look for "CodeFlow: Run Code", "CodeFlow: Send Webhook", "CodeFlow: Format Data", or "CodeFlow: Custom Formula"');
+  console.log('4. Configure with your snippet ID, webhook URL, or formula\n');
 }
 
 main().catch(console.error);

@@ -63,7 +63,7 @@
         "type": "string",
         "fieldType": "text"
       },
-      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "supportedValueTypes": ["OBJECT_PROPERTY"],
       "isRequired": true,
       "labels": {
         "en": {
@@ -78,7 +78,7 @@
         "type": "string",
         "fieldType": "text"
       },
-      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "supportedValueTypes": ["OBJECT_PROPERTY"],
       "isRequired": false,
       "labels": {
         "en": {
@@ -93,7 +93,7 @@
         "type": "string",
         "fieldType": "text"
       },
-      "supportedValueTypes": ["STATIC_VALUE", "OBJECT_PROPERTY"],
+      "supportedValueTypes": ["OBJECT_PROPERTY"],
       "isRequired": false,
       "labels": {
         "en": {

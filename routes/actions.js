@@ -11,6 +11,181 @@ const Execution = require('../models/Execution');
 const Usage = require('../models/Usage');
 
 /**
+ * Formula Evaluation for Custom Mode
+ * Supports: concat(), upper(), lower(), trim(), substring(), replace(), if(), math operations
+ */
+function evaluateFormula(formula, object = {}, inputs = {}) {
+  let result = formula;
+
+  // Replace {{property}} placeholders with object property values
+  result = result.replace(/\{\{([^}]+)\}\}/g, (match, propPath) => {
+    const props = object.properties || object;
+    const value = getNestedValue(props, propPath.trim());
+    return value !== undefined && value !== null ? String(value) : '';
+  });
+
+  // Replace [[input]] placeholders with input field values
+  result = result.replace(/\[\[([^\]]+)\]\]/g, (match, inputName) => {
+    const value = inputs[inputName.trim()];
+    return value !== undefined && value !== null ? String(value) : '';
+  });
+
+  // Process functions
+  result = processFormulaFunctions(result);
+
+  return result;
+}
+
+/**
+ * Process formula functions like concat(), upper(), lower(), etc.
+ */
+function processFormulaFunctions(formula) {
+  let result = formula;
+  let iterations = 0;
+  const maxIterations = 50; // Prevent infinite loops
+
+  // Process nested functions from innermost to outermost
+  while (iterations < maxIterations) {
+    const previousResult = result;
+
+    // concat(arg1, arg2, ...)
+    result = result.replace(/concat\(([^)]*)\)/gi, (match, args) => {
+      const parts = splitArgs(args);
+      return parts.join('');
+    });
+
+    // upper(text)
+    result = result.replace(/upper\(([^)]*)\)/gi, (match, text) => {
+      return text.toUpperCase();
+    });
+
+    // lower(text)
+    result = result.replace(/lower\(([^)]*)\)/gi, (match, text) => {
+      return text.toLowerCase();
+    });
+
+    // trim(text)
+    result = result.replace(/trim\(([^)]*)\)/gi, (match, text) => {
+      return text.trim();
+    });
+
+    // trimall(text) - removes all whitespace
+    result = result.replace(/trimall\(([^)]*)\)/gi, (match, text) => {
+      return text.replace(/\s+/g, '');
+    });
+
+    // capitalize(text)
+    result = result.replace(/capitalize\(([^)]*)\)/gi, (match, text) => {
+      return text.replace(/\b\w/g, char => char.toUpperCase());
+    });
+
+    // substring(text, start, length)
+    result = result.replace(/substring\(([^,]+),\s*(\d+)(?:,\s*(\d+))?\)/gi, (match, text, start, length) => {
+      const startIdx = parseInt(start, 10);
+      if (length !== undefined) {
+        return text.substring(startIdx, startIdx + parseInt(length, 10));
+      }
+      return text.substring(startIdx);
+    });
+
+    // replace(text, search, replacement)
+    result = result.replace(/replace\(([^,]+),\s*([^,]+),\s*([^)]*)\)/gi, (match, text, search, replacement) => {
+      return text.split(search).join(replacement);
+    });
+
+    // length(text)
+    result = result.replace(/length\(([^)]*)\)/gi, (match, text) => {
+      return String(text.length);
+    });
+
+    // if(condition, thenValue, elseValue)
+    result = result.replace(/if\(([^,]+),\s*([^,]+),\s*([^)]*)\)/gi, (match, condition, thenVal, elseVal) => {
+      const isTruthy = condition && condition !== 'false' && condition !== '0' &&
+                       condition !== 'null' && condition !== 'undefined' && condition.trim() !== '';
+      return isTruthy ? thenVal : elseVal;
+    });
+
+    // default(value, defaultValue)
+    result = result.replace(/default\(([^,]*),\s*([^)]*)\)/gi, (match, value, defaultVal) => {
+      return (value && value.trim() !== '') ? value : defaultVal;
+    });
+
+    // round(number, decimals)
+    result = result.replace(/round\(([^,]+)(?:,\s*(\d+))?\)/gi, (match, num, decimals) => {
+      const n = parseFloat(num);
+      if (isNaN(n)) return num;
+      const d = parseInt(decimals || '0', 10);
+      const factor = Math.pow(10, d);
+      return String(Math.round(n * factor) / factor);
+    });
+
+    // floor(number)
+    result = result.replace(/floor\(([^)]+)\)/gi, (match, num) => {
+      const n = parseFloat(num);
+      return isNaN(n) ? num : String(Math.floor(n));
+    });
+
+    // ceil(number)
+    result = result.replace(/ceil\(([^)]+)\)/gi, (match, num) => {
+      const n = parseFloat(num);
+      return isNaN(n) ? num : String(Math.ceil(n));
+    });
+
+    // abs(number)
+    result = result.replace(/abs\(([^)]+)\)/gi, (match, num) => {
+      const n = parseFloat(num);
+      return isNaN(n) ? num : String(Math.abs(n));
+    });
+
+    // Simple math operations: number + number, number - number, etc.
+    result = result.replace(/(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      return String(parseFloat(a) + parseFloat(b));
+    });
+    result = result.replace(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      return String(parseFloat(a) - parseFloat(b));
+    });
+    result = result.replace(/(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      return String(parseFloat(a) * parseFloat(b));
+    });
+    result = result.replace(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      const divisor = parseFloat(b);
+      if (divisor === 0) return 'ERROR:DIV/0';
+      return String(parseFloat(a) / divisor);
+    });
+
+    // If no changes were made, we're done
+    if (result === previousResult) break;
+    iterations++;
+  }
+
+  return result;
+}
+
+/**
+ * Split function arguments, respecting nested parentheses
+ */
+function splitArgs(argsString) {
+  const args = [];
+  let current = '';
+  let depth = 0;
+
+  for (const char of argsString) {
+    if (char === '(') depth++;
+    else if (char === ')') depth--;
+    else if (char === ',' && depth === 0) {
+      args.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) args.push(current.trim());
+
+  return args;
+}
+
+
+/**
  * Send Webhook Action
  * POST /v1/actions/webhook
  */
@@ -355,12 +530,77 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
   } = req.body;
 
   const {
+    customMode,
+    formula,
     operation,
     input1,
     input2,
     input3,
     formatOptions
   } = inputFields;
+
+  // Custom mode - evaluate formula (triggered by customMode flag OR formula without operation)
+  if (customMode === true || customMode === 'true' || (formula && !operation)) {
+    if (!formula) {
+      return res.json({
+        outputFields: {
+          codeflow_success: false,
+          codeflow_error: 'No formula specified in custom mode'
+        }
+      });
+    }
+
+    try {
+      const result = evaluateFormula(formula, object, inputFields);
+      const resultNumber = !isNaN(parseFloat(result)) ? parseFloat(result) : null;
+
+      // Log execution
+      await Execution.create({
+        portalId,
+        actionType: 'format',
+        workflowId: workflow.workflowId,
+        enrollmentId: callbackId,
+        objectType: object.objectType,
+        objectId: object.objectId,
+        status: 'success',
+        executionTimeMs: Date.now() - startTime,
+        inputData: { customMode: true, formula },
+        outputData: { result, result_number: resultNumber }
+      });
+
+      // Record usage
+      await Usage.recordExecution(portalId, {
+        actionType: 'format',
+        status: 'success',
+        executionTimeMs: Date.now() - startTime,
+        workflowId: workflow.workflowId
+      });
+
+      return res.json({
+        outputFields: {
+          codeflow_success: true,
+          result: String(result),
+          result_number: resultNumber
+        }
+      });
+    } catch (formulaError) {
+      await Execution.create({
+        portalId,
+        actionType: 'format',
+        workflowId: workflow?.workflowId,
+        status: 'error',
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: formulaError.message
+      });
+
+      return res.json({
+        outputFields: {
+          codeflow_success: false,
+          codeflow_error: `Formula error: ${formulaError.message}`
+        }
+      });
+    }
+  }
 
   if (!operation) {
     return res.json({
