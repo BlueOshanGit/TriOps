@@ -11,7 +11,7 @@ async function createWorkflowAction() {
     published: true,
     labels: {
       en: {
-        actionName: 'CodeFlow: Send Webhook',
+        actionName: 'Send Webhook',
         actionDescription: 'Send data to an external webhook URL'
       }
     },
@@ -54,7 +54,7 @@ async function createWorkflowAction() {
     outputFields: [
       {
         typeDefinition: {
-          name: 'codeflow_success',
+          name: 'triops_success',
           type: 'bool'
         },
         labels: {
@@ -70,8 +70,8 @@ async function createWorkflowAction() {
     console.log('Action definition ready:');
     console.log(JSON.stringify(actionDefinition, null, 2));
     console.log('\n---\nTo create this action, go to:');
-    console.log('https://app.hubspot.com/developer-projects/4066240/project/hubspot-codeflow');
-    console.log('\nClick on CodeFlow app -> Look for "Automation" or "Extensions" section');
+    console.log('https://app.hubspot.com/developer-projects/4066240/project/hubspot-triops');
+    console.log('\nClick on TriOps app -> Look for "Automation" or "Extensions" section');
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
   }

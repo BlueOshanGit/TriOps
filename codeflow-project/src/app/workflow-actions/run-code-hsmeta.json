@@ -1,5 +1,5 @@
 {
-  "uid": "codeflow_run_code",
+  "uid": "triops_run_code",
   "type": "workflow-action",
   "config": {
     "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/code",
@@ -59,13 +59,13 @@
     "outputFields": [
       {
         "typeDefinition": {
-          "name": "codeflow_success",
+          "name": "triops_success",
           "type": "bool"
         }
       },
       {
         "typeDefinition": {
-          "name": "codeflow_error",
+          "name": "triops_error",
           "type": "string"
         }
       },
@@ -90,7 +90,7 @@
     ],
     "labels": {
       "en": {
-        "actionName": "CodeFlow: Run Code",
+        "actionName": "Run Code",
         "actionDescription": "Execute custom JavaScript code with access to workflow data and secrets",
         "actionCardContent": "Run custom code",
         "inputFieldLabels": {
@@ -101,15 +101,15 @@
           "input3": "Input 3"
         },
         "inputFieldDescriptions": {
-          "snippetId": "The ID of a saved code snippet to execute (find in CodeFlow dashboard)",
+          "snippetId": "The ID of a saved code snippet to execute (find in TriOps dashboard)",
           "inlineCode": "JavaScript code to execute. Use 'inputs' for input fields, 'secrets' for stored secrets, 'output' for return values",
           "input1": "Custom input available as inputs.input1 in your code",
           "input2": "Custom input available as inputs.input2 in your code",
           "input3": "Custom input available as inputs.input3 in your code"
         },
         "outputFieldLabels": {
-          "codeflow_success": "Success",
-          "codeflow_error": "Error Message",
+          "triops_success": "Success",
+          "triops_error": "Error Message",
           "output1": "Output 1",
           "output2": "Output 2",
           "output3": "Output 3"

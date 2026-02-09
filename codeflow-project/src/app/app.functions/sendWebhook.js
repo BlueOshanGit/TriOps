@@ -12,8 +12,8 @@ exports.main = async (context = {}) => {
   if (!webhookUrl) {
     return {
       outputFields: {
-        codeflow_success: false,
-        codeflow_error: 'Missing webhook URL'
+        triops_success: false,
+        triops_error: 'Missing webhook URL'
       }
     };
   }
@@ -45,17 +45,17 @@ exports.main = async (context = {}) => {
 
     return {
       outputFields: {
-        codeflow_success: true,
-        codeflow_status_code: response.status,
-        codeflow_error: ''
+        triops_success: true,
+        triops_status_code: response.status,
+        triops_error: ''
       }
     };
   } catch (error) {
     return {
       outputFields: {
-        codeflow_success: false,
-        codeflow_status_code: error.response?.status || 0,
-        codeflow_error: error.message
+        triops_success: false,
+        triops_status_code: error.response?.status || 0,
+        triops_error: error.message
       }
     };
   }

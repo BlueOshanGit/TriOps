@@ -188,7 +188,7 @@ router.get('/callback', async (req, res) => {
       res.send(`
         <html>
           <head>
-            <title>CodeFlow - Connected!</title>
+            <title>TriOps - Connected!</title>
             <style>
               body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
               .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 400px; }
@@ -203,19 +203,19 @@ router.get('/callback', async (req, res) => {
             <div class="card">
               <div class="success-icon">✓</div>
               <h1>Successfully Connected!</h1>
-              <p>CodeFlow has been installed in your HubSpot portal.</p>
+              <p>TriOps has been installed in your HubSpot portal.</p>
               <p><strong>Portal ID:</strong> ${safePortalId}</p>
               <div class="spinner"></div>
               <p>Redirecting to dashboard...</p>
             </div>
             <script>
               // Store token in localStorage
-              localStorage.setItem('codeflow_token', '${safeJwt}');
+              localStorage.setItem('triops_token', '${safeJwt}');
 
               // If in popup, close and notify parent
               if (window.opener) {
                 window.opener.postMessage({ type: 'OAUTH_SUCCESS', token: '${safeJwt}' }, '*');
-                try { window.opener.localStorage.setItem('codeflow_token', '${safeJwt}'); } catch(e) {}
+                try { window.opener.localStorage.setItem('triops_token', '${safeJwt}'); } catch(e) {}
                 window.close();
               } else {
                 // Redirect to frontend dashboard after a short delay

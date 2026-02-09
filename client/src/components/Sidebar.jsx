@@ -15,10 +15,10 @@ function Sidebar({ portal }) {
       <div className="p-4 border-b border-hubspot-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-hubspot-orange rounded flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CF</span>
+            <span className="text-white font-bold text-sm">TO</span>
           </div>
           <div>
-            <h1 className="font-semibold text-hubspot-dark">CodeFlow</h1>
+            <h1 className="font-semibold text-hubspot-dark">TriOps</h1>
             <p className="text-xs text-hubspot-gray">HubSpot Integration</p>
           </div>
         </div>

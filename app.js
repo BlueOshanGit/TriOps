@@ -86,7 +86,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`CodeFlow server running on port ${PORT}`);
+  console.log(`TriOps server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

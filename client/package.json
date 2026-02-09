@@ -1,5 +1,5 @@
 {
-  "name": "codeflow-client",
+  "name": "triops-client",
   "private": true,
   "version": "1.0.0",
   "type": "module",

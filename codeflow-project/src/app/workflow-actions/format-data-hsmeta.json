@@ -1,5 +1,5 @@
 {
-  "uid": "codeflow_format_data",
+  "uid": "triops_format_data",
   "type": "workflow-action",
   "config": {
     "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/format",
@@ -91,13 +91,13 @@
     "outputFields": [
       {
         "typeDefinition": {
-          "name": "codeflow_success",
+          "name": "triops_success",
           "type": "bool"
         }
       },
       {
         "typeDefinition": {
-          "name": "codeflow_error",
+          "name": "triops_error",
           "type": "string"
         }
       },
@@ -116,7 +116,7 @@
     ],
     "labels": {
       "en": {
-        "actionName": "CodeFlow: Format Data",
+        "actionName": "Format Data",
         "actionDescription": "Format and transform data - text, numbers, dates, and calculations",
         "actionCardContent": "Format data: {{operation}}",
         "inputFieldLabels": {
@@ -134,8 +134,8 @@
           "formatOptions": "Additional options: decimal places (2), currency code (USD), date format (YYYY-MM-DD), etc."
         },
         "outputFieldLabels": {
-          "codeflow_success": "Success",
-          "codeflow_error": "Error Message",
+          "triops_success": "Success",
+          "triops_error": "Error Message",
           "result": "Formatted Result",
           "result_number": "Result (Number)"
         }

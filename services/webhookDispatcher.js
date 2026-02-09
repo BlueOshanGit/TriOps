@@ -237,7 +237,7 @@ async function executeSingleRequest(config, context, timeout = 30000, skipValida
   // Build headers
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': 'CodeFlow/1.0',
+    'User-Agent': 'TriOps/1.0',
     ...(config.headers ? processObjectTemplates(config.headers, context) : {})
   };
 

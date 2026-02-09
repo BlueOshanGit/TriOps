@@ -132,7 +132,7 @@ router.get('/top-snippets', async (req, res) => {
 });
 
 /**
- * Get unique workflows using CodeFlow
+ * Get unique workflows using TriOps
  * GET /api/usage/workflows
  */
 router.get('/workflows', async (req, res) => {

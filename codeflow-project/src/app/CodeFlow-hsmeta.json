@@ -18,7 +18,7 @@
       ],
       "conditionallyRequiredScopes": []
     },
-    "name": "CodeFlow",
+    "name": "TriOps",
     "description": "Custom code and webhook execution for workflows",
     "isUserLevel": false,
     "distribution": "MARKETPLACE",
@@ -28,6 +28,6 @@
       "iframe": []
     }
   },
-  "uid": "CodeFlow",
+  "uid": "TriOps",
   "type": "app"
 }

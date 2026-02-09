@@ -4,7 +4,7 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "CodeFlow: Format Data",
+      "actionName": "Format Data",
       "actionDescription": "Format and transform data - text, numbers, dates, and calculations",
       "actionCardContent": "Format: {{operation}}"
     }
@@ -121,7 +121,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "codeflow_success",
+        "name": "triops_success",
         "type": "bool"
       },
       "labels": {
@@ -132,7 +132,7 @@
     },
     {
       "typeDefinition": {
-        "name": "codeflow_error",
+        "name": "triops_error",
         "type": "string"
       },
       "labels": {
@@ -169,13 +169,13 @@
     {
       "labelName": "Continue on success",
       "conditions": {
-        "codeflow_success": true
+        "triops_success": true
       }
     },
     {
       "labelName": "Handle error",
       "conditions": {
-        "codeflow_success": false
+        "triops_success": false
       }
     }
   ]

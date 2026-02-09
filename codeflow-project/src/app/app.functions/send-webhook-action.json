@@ -4,7 +4,7 @@
   "objectTypes": ["CONTACT", "COMPANY", "DEAL", "TICKET"],
   "labels": {
     "en": {
-      "actionName": "CodeFlow: Send Webhook",
+      "actionName": "Send Webhook",
       "actionDescription": "Send an HTTP request to any URL with dynamic data from the workflow",
       "actionCardContent": "Send webhook to {{webhookUrl}}"
     }
@@ -153,7 +153,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "codeflow_success",
+        "name": "triops_success",
         "type": "bool"
       },
       "labels": {
@@ -162,7 +162,7 @@
     },
     {
       "typeDefinition": {
-        "name": "codeflow_status_code",
+        "name": "triops_status_code",
         "type": "number"
       },
       "labels": {
@@ -171,7 +171,7 @@
     },
     {
       "typeDefinition": {
-        "name": "codeflow_error",
+        "name": "triops_error",
         "type": "string"
       },
       "labels": {
@@ -180,7 +180,7 @@
     },
     {
       "typeDefinition": {
-        "name": "codeflow_retries_used",
+        "name": "triops_retries_used",
         "type": "number"
       },
       "labels": {

@@ -56,7 +56,7 @@ function Usage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-hubspot-dark">Usage</h1>
-          <p className="text-hubspot-gray mt-1">Monitor your CodeFlow usage and limits</p>
+          <p className="text-hubspot-gray mt-1">Monitor your TriOps usage and limits</p>
         </div>
         <select
           value={days}

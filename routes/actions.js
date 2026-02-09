@@ -217,7 +217,7 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
   if (!webhookUrl) {
     return res.status(400).json({
       outputFields: {
-        codeflow_error: 'Missing webhook URL'
+        triops_error: 'Missing webhook URL'
       }
     });
   }
@@ -288,11 +288,11 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
     }
 
     // Add status fields
-    outputFields.codeflow_success = result.success;
-    outputFields.codeflow_status_code = result.httpStatusCode;
-    outputFields.codeflow_retries_used = result.retriesUsed || 0;
+    outputFields.triops_success = result.success;
+    outputFields.triops_status_code = result.httpStatusCode;
+    outputFields.triops_retries_used = result.retriesUsed || 0;
     if (!result.success) {
-      outputFields.codeflow_error = result.errorMessage;
+      outputFields.triops_error = result.errorMessage;
     }
 
     // Log execution
@@ -345,8 +345,8 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        codeflow_success: false,
-        codeflow_error: error.message
+        triops_success: false,
+        triops_error: error.message
       }
     });
   }
@@ -386,8 +386,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       if (!snippetDoc) {
         return res.json({
           outputFields: {
-            codeflow_success: false,
-            codeflow_error: 'Snippet not found'
+            triops_success: false,
+            triops_error: 'Snippet not found'
           }
         });
       }
@@ -397,8 +397,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
     } else {
       return res.json({
         outputFields: {
-          codeflow_success: false,
-          codeflow_error: 'No code provided (specify snippetId or inlineCode)'
+          triops_success: false,
+          triops_error: 'No code provided (specify snippetId or inlineCode)'
         }
       });
     }
@@ -450,12 +450,12 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
 
     // Build output fields from result
     const outputFields = {
-      codeflow_success: result.success,
+      triops_success: result.success,
       ...(result.output || {})
     };
 
     if (!result.success) {
-      outputFields.codeflow_error = result.errorMessage;
+      outputFields.triops_error = result.errorMessage;
     }
 
     // Log execution
@@ -508,8 +508,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        codeflow_success: false,
-        codeflow_error: error.message
+        triops_success: false,
+        triops_error: error.message
       }
     });
   }
@@ -544,8 +544,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
     if (!formula) {
       return res.json({
         outputFields: {
-          codeflow_success: false,
-          codeflow_error: 'No formula specified in custom mode'
+          triops_success: false,
+          triops_error: 'No formula specified in custom mode'
         }
       });
     }
@@ -578,7 +578,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
       return res.json({
         outputFields: {
-          codeflow_success: true,
+          triops_success: true,
           result: String(result),
           result_number: resultNumber
         }
@@ -595,8 +595,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
       return res.json({
         outputFields: {
-          codeflow_success: false,
-          codeflow_error: `Formula error: ${formulaError.message}`
+          triops_success: false,
+          triops_error: `Formula error: ${formulaError.message}`
         }
       });
     }
@@ -605,8 +605,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
   if (!operation) {
     return res.json({
       outputFields: {
-        codeflow_success: false,
-        codeflow_error: 'No operation specified'
+        triops_success: false,
+        triops_error: 'No operation specified'
       }
     });
   }
@@ -777,8 +777,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         if (isNaN(num2) || num2 === 0) {
           return res.json({
             outputFields: {
-              codeflow_success: false,
-              codeflow_error: 'Cannot divide by zero or invalid divisor'
+              triops_success: false,
+              triops_error: 'Cannot divide by zero or invalid divisor'
             }
           });
         }
@@ -900,8 +900,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
       default:
         return res.json({
           outputFields: {
-            codeflow_success: false,
-            codeflow_error: `Unknown operation: ${operation}`
+            triops_success: false,
+            triops_error: `Unknown operation: ${operation}`
           }
         });
     }
@@ -930,7 +930,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        codeflow_success: true,
+        triops_success: true,
         result: result,
         result_number: resultNumber
       }
@@ -949,8 +949,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        codeflow_success: false,
-        codeflow_error: error.message
+        triops_success: false,
+        triops_error: error.message
       }
     });
   }
@@ -1016,7 +1016,7 @@ function getNestedValue(obj, path) {
 router.post('/test', async (req, res) => {
   res.json({
     success: true,
-    message: 'CodeFlow actions endpoint is working',
+    message: 'TriOps actions endpoint is working',
     timestamp: new Date().toISOString(),
     receivedBody: req.body
   });

@@ -36,12 +36,12 @@ Commands to Run Tomorrow (Every Time You Start)
 
   1. Copy the new ngrok URL
   2. Update .env file: BASE_URL=https://new-url.ngrok-free.dev
-  3. Update codeflow-project/src/app/workflow-actions/workflow-actions-hsmeta.json: change actionUrl  
-  4. Update codeflow-project/src/app/CodeFlow-hsmeta.json: change redirectUrls
+  3. Update triops-project/src/app/workflow-actions/workflow-actions-hsmeta.json: change actionUrl  
+  4. Update triops-project/src/app/TriOps-hsmeta.json: change redirectUrls
   5. Run hs project upload && hs project deploy
 
   ---
-  Now go check HubSpot workflows and search for "CodeFlow"! 🎉
+  Now go check HubSpot workflows and search for "TriOps" - look for Send Webhook, Format Data, Format Data: Custom Mode, Run Code! 🎉
   
 
   

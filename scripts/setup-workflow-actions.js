@@ -14,7 +14,7 @@ const actions = [
     published: true,
     labels: {
       en: {
-        actionName: 'CodeFlow: Run Code',
+        actionName: 'Run Code',
         actionDescription: 'Execute custom JavaScript code with access to workflow data and secrets',
         actionCardContent: 'Run code snippet: {{snippetId}}'
       }
@@ -52,8 +52,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'output1', type: 'string' }, labels: { en: { label: 'Output 1' } } },
       { typeDefinition: { name: 'output2', type: 'string' }, labels: { en: { label: 'Output 2' } } },
       { typeDefinition: { name: 'output3', type: 'string' }, labels: { en: { label: 'Output 3' } } }
@@ -64,7 +64,7 @@ const actions = [
     published: true,
     labels: {
       en: {
-        actionName: 'CodeFlow: Send Webhook',
+        actionName: 'Send Webhook',
         actionDescription: 'Send an HTTP request to any URL with dynamic data',
         actionCardContent: 'Send webhook to {{webhookUrl}}'
       }
@@ -107,9 +107,9 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'codeflow_status_code', type: 'number' }, labels: { en: { label: 'HTTP Status Code' } } },
-      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } }
+      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'triops_status_code', type: 'number' }, labels: { en: { label: 'HTTP Status Code' } } },
+      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } }
     ]
   },
   {
@@ -117,7 +117,7 @@ const actions = [
     published: true,
     labels: {
       en: {
-        actionName: 'CodeFlow: Format Data',
+        actionName: 'Format Data',
         actionDescription: 'Format and transform data - text, numbers, dates, and calculations',
         actionCardContent: 'Format: {{operation}}'
       }
@@ -191,8 +191,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formatted Result' } } },
       { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
     ]
@@ -202,7 +202,7 @@ const actions = [
     published: true,
     labels: {
       en: {
-        actionName: 'CodeFlow: Custom Formula',
+        actionName: 'Format Data: Custom Mode',
         actionDescription: 'Write custom formulas to transform data using functions, math, and property values',
         actionCardContent: 'Custom formula'
       }
@@ -234,8 +234,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
       { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
     ]
@@ -286,7 +286,7 @@ async function listExistingActions() {
 
 async function main() {
   console.log('===========================================');
-  console.log('  CodeFlow - Workflow Actions Setup');
+  console.log('  TriOps - Workflow Actions Setup');
   console.log('===========================================\n');
 
   // Validate environment
@@ -333,7 +333,7 @@ async function main() {
   console.log('\nNext steps:');
   console.log('1. Go to your HubSpot workflow');
   console.log('2. Add a new action');
-  console.log('3. Look for "CodeFlow: Run Code", "CodeFlow: Send Webhook", "CodeFlow: Format Data", or "CodeFlow: Custom Formula"');
+  console.log('3. Look for "Send Webhook", "Format Data", "Format Data: Custom Mode", or "Run Code" under TriOps');
   console.log('4. Configure with your snippet ID, webhook URL, or formula\n');
 }
 

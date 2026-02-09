@@ -6,7 +6,7 @@
   "objectTypes": ["CONTACT", "COMPANY", "DEAL", "TICKET"],
   "labels": {
     "en": {
-      "actionName": "CodeFlow: Run Code",
+      "actionName": "Run Code",
       "actionDescription": "Execute custom JavaScript code",
       "actionCardContent": "Run custom code"
     }
@@ -46,7 +46,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "codeflow_success",
+        "name": "triops_success",
         "type": "bool"
       },
       "labels": {
@@ -57,7 +57,7 @@
     },
     {
       "typeDefinition": {
-        "name": "codeflow_error",
+        "name": "triops_error",
         "type": "string"
       },
       "labels": {

@@ -1,7 +1,7 @@
 {
-  "name": "hubspot-codeflow",
+  "name": "hubspot-triops",
   "version": "1.0.0",
-  "description": "HubSpot marketplace app for webhook and custom code execution in workflows",
+  "description": "TriOps - HubSpot marketplace app for webhook and custom code execution in workflows",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

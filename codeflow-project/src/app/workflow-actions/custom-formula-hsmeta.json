@@ -1,5 +1,5 @@
 {
-  "uid": "codeflow_custom_formula",
+  "uid": "triops_custom_formula",
   "type": "workflow-action",
   "config": {
     "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/format",
@@ -50,13 +50,13 @@
     "outputFields": [
       {
         "typeDefinition": {
-          "name": "codeflow_success",
+          "name": "triops_success",
           "type": "bool"
         }
       },
       {
         "typeDefinition": {
-          "name": "codeflow_error",
+          "name": "triops_error",
           "type": "string"
         }
       },
@@ -75,7 +75,7 @@
     ],
     "labels": {
       "en": {
-        "actionName": "CodeFlow: Custom Formula",
+        "actionName": "Format Data: Custom Mode",
         "actionDescription": "Transform data with custom formulas using built-in functions and math",
         "actionCardContent": "Custom formula",
         "inputFieldLabels": {
@@ -91,8 +91,8 @@
           "input3": "Select a property to use in your formula"
         },
         "outputFieldLabels": {
-          "codeflow_success": "Success",
-          "codeflow_error": "Error Message",
+          "triops_success": "Success",
+          "triops_error": "Error Message",
           "result": "Formula Result",
           "result_number": "Result (Number)"
         }

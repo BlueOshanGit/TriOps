@@ -1,7 +1,7 @@
 {
-  "name": "CodeFlow",
+  "name": "TriOps",
   "description": "Execute custom code and webhooks in HubSpot workflows",
-  "uid": "codeflow",
+  "uid": "triops",
   "scopes": [
     "crm.objects.contacts.read",
     "crm.objects.contacts.write",

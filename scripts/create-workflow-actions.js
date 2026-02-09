@@ -16,7 +16,7 @@ async function createWorkflowActions() {
       published: true,
       labels: {
         en: {
-          actionName: 'CodeFlow: Send Webhook',
+          actionName: 'Send Webhook',
           actionDescription: 'Send data to an external webhook URL',
           actionCardContent: 'Send webhook request'
         }
@@ -75,7 +75,7 @@ async function createWorkflowActions() {
       outputFields: [
         {
           typeDefinition: {
-            name: 'codeflow_success',
+            name: 'triops_success',
             type: 'bool'
           },
           labels: {
@@ -84,7 +84,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'codeflow_status_code',
+            name: 'triops_status_code',
             type: 'number'
           },
           labels: {
@@ -93,7 +93,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'codeflow_error',
+            name: 'triops_error',
             type: 'string'
           },
           labels: {
@@ -108,7 +108,7 @@ async function createWorkflowActions() {
       published: true,
       labels: {
         en: {
-          actionName: 'CodeFlow: Run Code',
+          actionName: 'Run Code',
           actionDescription: 'Execute custom JavaScript code',
           actionCardContent: 'Run custom code'
         }
@@ -148,7 +148,7 @@ async function createWorkflowActions() {
       outputFields: [
         {
           typeDefinition: {
-            name: 'codeflow_success',
+            name: 'triops_success',
             type: 'bool'
           },
           labels: {
@@ -157,7 +157,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'codeflow_error',
+            name: 'triops_error',
             type: 'string'
           },
           labels: {
@@ -172,7 +172,7 @@ async function createWorkflowActions() {
       published: true,
       labels: {
         en: {
-          actionName: 'CodeFlow: Custom Formula',
+          actionName: 'Format Data: Custom Mode',
           actionDescription: 'Write custom formulas to transform data using functions, math, and property values',
           actionCardContent: 'Custom formula'
         }
@@ -209,8 +209,8 @@ async function createWorkflowActions() {
         }
       ],
       outputFields: [
-        { typeDefinition: { name: 'codeflow_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-        { typeDefinition: { name: 'codeflow_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+        { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+        { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
         { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
         { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
       ]

@@ -4,14 +4,14 @@ console.log('API Base URL:', API_BASE)
 
 // Token management
 export function getToken() {
-  return localStorage.getItem('codeflow_token')
+  return localStorage.getItem('triops_token')
 }
 
 export function setToken(token) {
   if (token) {
-    localStorage.setItem('codeflow_token', token)
+    localStorage.setItem('triops_token', token)
   } else {
-    localStorage.removeItem('codeflow_token')
+    localStorage.removeItem('triops_token')
   }
 }
 

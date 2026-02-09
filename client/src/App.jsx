@@ -65,7 +65,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-hubspot-light">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hubspot-orange mx-auto mb-4"></div>
-          <p className="text-hubspot-gray">Loading CodeFlow...</p>
+          <p className="text-hubspot-gray">Loading TriOps...</p>
         </div>
       </div>
     )
