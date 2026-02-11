@@ -403,32 +403,28 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       });
     }
 
-    // Load secrets for this portal
+    // Load secrets for this portal — only decrypt those referenced in the code
     const secretDocs = await Secret.find({ portalId });
     const secrets = {};
-    const failedSecrets = [];
     for (const secret of secretDocs) {
+      const isReferenced = code.includes(`secrets.${secret.name}`) ||
+        code.includes(`secrets['${secret.name}']`) ||
+        code.includes(`secrets["${secret.name}"]`);
+      if (!isReferenced) continue;
+
       try {
         secrets[secret.name] = decrypt(
           secret.encryptedValue,
           secret.iv,
           secret.authTag
         );
-        // Update usage
         secret.lastUsedAt = new Date();
         secret.usageCount += 1;
         await secret.save();
       } catch (decryptError) {
         console.error(`Failed to decrypt secret ${secret.name}:`, decryptError.message);
-        failedSecrets.push(secret.name);
-        // Set to null so code can detect the secret exists but failed to decrypt
         secrets[secret.name] = null;
       }
-    }
-
-    // Log warning if any secrets failed to decrypt
-    if (failedSecrets.length > 0) {
-      console.warn(`[Portal ${portalId}] ${failedSecrets.length} secret(s) failed to decrypt: ${failedSecrets.join(', ')}`);
     }
 
     // Build context
@@ -472,8 +468,7 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       executionTimeMs: result.executionTimeMs,
       inputData: customInputs,
       outputData: result.output,
-      errorMessage: result.errorMessage,
-      errorStack: result.errorStack
+      errorMessage: result.errorMessage
     });
 
     // Update snippet stats if used
@@ -957,31 +952,34 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 });
 
 // Helper function to format dates
+// Uses split/join instead of RegExp to avoid ReDoS, ordered longest-first
 function formatDate(date, format) {
   const pad = (n, len = 2) => String(n).padStart(len, '0');
 
-  const replacements = {
-    'YYYY': date.getFullYear(),
-    'YY': String(date.getFullYear()).slice(-2),
-    'MM': pad(date.getMonth() + 1),
-    'M': date.getMonth() + 1,
-    'DD': pad(date.getDate()),
-    'D': date.getDate(),
-    'HH': pad(date.getHours()),
-    'H': date.getHours(),
-    'hh': pad(date.getHours() % 12 || 12),
-    'h': date.getHours() % 12 || 12,
-    'mm': pad(date.getMinutes()),
-    'm': date.getMinutes(),
-    'ss': pad(date.getSeconds()),
-    's': date.getSeconds(),
-    'A': date.getHours() >= 12 ? 'PM' : 'AM',
-    'a': date.getHours() >= 12 ? 'pm' : 'am'
-  };
+  // Ordered: double-letter tokens first, then single-letter tokens
+  // This prevents shorter tokens (M) from matching inside longer ones (MM)
+  const tokens = [
+    ['YYYY', String(date.getFullYear())],
+    ['YY', String(date.getFullYear()).slice(-2)],
+    ['MM', pad(date.getMonth() + 1)],
+    ['DD', pad(date.getDate())],
+    ['HH', pad(date.getHours())],
+    ['hh', pad(date.getHours() % 12 || 12)],
+    ['mm', pad(date.getMinutes())],
+    ['ss', pad(date.getSeconds())],
+    ['M', String(date.getMonth() + 1)],
+    ['D', String(date.getDate())],
+    ['H', String(date.getHours())],
+    ['h', String(date.getHours() % 12 || 12)],
+    ['m', String(date.getMinutes())],
+    ['s', String(date.getSeconds())],
+    ['A', date.getHours() >= 12 ? 'PM' : 'AM'],
+    ['a', date.getHours() >= 12 ? 'pm' : 'am']
+  ];
 
   let result = format;
-  for (const [token, value] of Object.entries(replacements)) {
-    result = result.replace(new RegExp(token, 'g'), value);
+  for (const [token, value] of tokens) {
+    result = result.split(token).join(value);
   }
   return result;
 }
@@ -1017,16 +1015,19 @@ router.post('/test', async (req, res) => {
   res.json({
     success: true,
     message: 'TriOps actions endpoint is working',
-    timestamp: new Date().toISOString(),
-    receivedBody: req.body
+    timestamp: new Date().toISOString()
   });
 });
 
 /**
- * Simple Code execution endpoint for testing (no auth required)
+ * Simple Code execution endpoint for testing (development only)
  * POST /v1/actions/simple-code
  */
 router.post('/simple-code', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   console.log('Simple code execution received:', JSON.stringify(req.body, null, 2));
 
   const {
@@ -1079,13 +1080,14 @@ router.post('/simple-code', async (req, res) => {
 });
 
 /**
- * Simple Webhook endpoint for HubSpot's built-in webhook action
+ * Simple Webhook endpoint for testing (development only)
  * POST /v1/actions/simple-webhook
- *
- * This endpoint accepts HubSpot workflow action format:
- * { callbackId, origin, context, object, fields, inputFields, typedInputs }
  */
 router.post('/simple-webhook', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   console.log('Simple webhook received:', JSON.stringify(req.body, null, 2));
 
   // HubSpot sends webhook config inside inputFields or fields

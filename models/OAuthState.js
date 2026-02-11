@@ -22,7 +22,4 @@ const oauthStateSchema = new mongoose.Schema({
   }
 });
 
-// Ensure TTL index is created
-oauthStateSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 });
-
 module.exports = mongoose.model('OAuthState', oauthStateSchema);

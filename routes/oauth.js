@@ -116,13 +116,18 @@ router.get('/callback', async (req, res) => {
       console.log('State lookup result:', stateData ? 'found' : 'not found');
     }
 
-    // If state validation fails, still try to proceed but log warning
-    // Some OAuth flows might not preserve state correctly
+    // Enforce state validation for CSRF protection
     if (!state || !stateData) {
-      console.warn('OAuth state validation failed - proceeding anyway for compatibility');
-      // For development/testing, we'll allow proceeding without state
-      // In production, you might want to enforce strict state validation
-      stateData = { returnUrl: null };
+      console.error('OAuth state validation failed - rejecting request');
+      return res.status(400).send(`
+        <html>
+          <body>
+            <h1>Authorization Failed</h1>
+            <p>Invalid or expired authorization state. This may happen if the authorization took too long or the link was already used.</p>
+            <p><a href="/oauth/authorize">Try again</a></p>
+          </body>
+        </html>
+      `);
     }
 
     // Exchange code for tokens
@@ -149,10 +154,10 @@ router.get('/callback', async (req, res) => {
           appId: String(tokenInfo.app_id),
           userId: String(tokenInfo.user_id),
           userEmail: tokenInfo.user,
-          isActive: true,
-          installedAt: Date.now()
+          isActive: true
         },
         $setOnInsert: {
+          installedAt: Date.now(),
           settings: {
             webhookTimeout: 30000,
             codeTimeout: 10000,
@@ -214,7 +219,7 @@ router.get('/callback', async (req, res) => {
 
               // If in popup, close and notify parent
               if (window.opener) {
-                window.opener.postMessage({ type: 'OAUTH_SUCCESS', token: '${safeJwt}' }, '*');
+                window.opener.postMessage({ type: 'OAUTH_SUCCESS', token: '${safeJwt}' }, '${escapeForJs(frontendUrl)}');
                 try { window.opener.localStorage.setItem('triops_token', '${safeJwt}'); } catch(e) {}
                 window.close();
               } else {

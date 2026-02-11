@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { URL } = require('url');
 
 /**
  * Verify HubSpot webhook signature (v1)
@@ -99,29 +100,84 @@ function verifyHubSpotSignature(req, res, next) {
 
 /**
  * Middleware specifically for workflow action requests
- * These come with different signature handling
+ * Uses cryptographic signature verification when available,
+ * falls back to strict origin validation in development only
  */
 function verifyWorkflowActionSignature(req, res, next) {
-  // Workflow actions send portal ID in the payload
-  // We can use this to lookup the portal and verify the request
   const { portalId, callbackId } = req.body;
 
   if (!portalId) {
     return res.status(400).json({ error: 'Missing portalId in request' });
   }
 
-  // For workflow actions, HubSpot sends the origin header
-  const origin = req.headers.origin || req.headers.referer;
+  // Try cryptographic signature verification first
+  const signature = req.headers['x-hubspot-signature'];
+  const signatureVersion = req.headers['x-hubspot-signature-version'];
+  const timestamp = req.headers['x-hubspot-request-timestamp'];
+  const clientSecret = process.env.HUBSPOT_CLIENT_SECRET;
 
-  // Verify the request comes from HubSpot
-  if (origin && !origin.includes('hubspot.com') && process.env.NODE_ENV !== 'development') {
+  if (signature && clientSecret) {
+    const requestBody = JSON.stringify(req.body);
+    const method = req.method;
+    const uri = `${process.env.BASE_URL}${req.originalUrl}`;
+
+    let isValid = false;
+
+    switch (signatureVersion) {
+      case 'v3':
+        if (timestamp) {
+          const v3Result = verifySignatureV3(signature, clientSecret, method, uri, requestBody, timestamp);
+          isValid = v3Result.valid;
+        }
+        break;
+      case 'v2':
+        isValid = verifySignatureV2(signature, clientSecret, method, uri, requestBody);
+        break;
+      case 'v1':
+      default:
+        isValid = verifySignatureV1(signature, clientSecret, requestBody);
+        break;
+    }
+
+    if (!isValid) {
+      console.error('Workflow action signature verification failed');
+      return res.status(401).json({ error: 'Invalid HubSpot signature' });
+    }
+
+    req.portalId = portalId;
+    req.callbackId = callbackId;
+    return next();
+  }
+
+  // No signature headers — require them in production
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Missing HubSpot signature headers in production');
+    return res.status(401).json({ error: 'Missing authentication signature' });
+  }
+
+  // Development only: strict origin validation as fallback
+  const origin = req.headers.origin || req.headers.referer;
+  if (origin && !isValidHubSpotOrigin(origin)) {
     return res.status(403).json({ error: 'Invalid request origin' });
   }
 
   req.portalId = portalId;
   req.callbackId = callbackId;
-
   next();
+}
+
+/**
+ * Validate that an origin URL belongs to HubSpot
+ * Uses exact domain matching to prevent spoofing
+ */
+function isValidHubSpotOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return url.hostname === 'app.hubspot.com' ||
+           (url.hostname.endsWith('.hubspot.com') && url.protocol === 'https:');
+  } catch {
+    return false;
+  }
 }
 
 module.exports = {

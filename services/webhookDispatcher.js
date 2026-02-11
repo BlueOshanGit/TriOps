@@ -1,5 +1,4 @@
 const axios = require('axios');
-const Handlebars = require('handlebars');
 const { URL } = require('url');
 
 /**
@@ -169,13 +168,12 @@ function processTemplate(template, context) {
     return template;
   }
 
-  try {
-    const compiled = Handlebars.compile(template, { noEscape: true });
-    return compiled(context);
-  } catch (error) {
-    console.error('Template processing error:', error.message);
-    return template;
-  }
+  // Simple {{path}} replacement — no Handlebars, no template injection risk
+  return template.replace(/\{\{([^}]+)\}\}/g, (match, pathStr) => {
+    const value = getValueByPath(context, pathStr.trim());
+    if (value === undefined || value === null) return '';
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+  });
 }
 
 /**
