@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { URL } = require('url');
+const logger = require('../utils/logger');
 
 /**
  * Verify HubSpot webhook signature (v1)
@@ -50,7 +51,7 @@ function verifySignatureV3(signature, clientSecret, method, uri, requestBody, ti
 function verifyHubSpotSignature(req, res, next) {
   // Skip verification in development if configured
   if (process.env.NODE_ENV === 'development' && process.env.SKIP_SIGNATURE_VERIFICATION === 'true') {
-    console.log('Skipping HubSpot signature verification (development mode)');
+    logger.info('Skipping HubSpot signature verification (development mode)');
     return next();
   }
 
@@ -91,7 +92,7 @@ function verifyHubSpotSignature(req, res, next) {
   }
 
   if (!isValid) {
-    console.error('HubSpot signature verification failed:', reason || 'Invalid signature');
+    logger.error('HubSpot signature verification failed', { error: reason || 'Invalid signature' });
     return res.status(401).json({ error: 'Invalid HubSpot signature' });
   }
 
@@ -104,7 +105,9 @@ function verifyHubSpotSignature(req, res, next) {
  * falls back to strict origin validation in development only
  */
 function verifyWorkflowActionSignature(req, res, next) {
-  const { portalId, callbackId } = req.body;
+  // HubSpot sends portalId inside origin object
+  const portalId = req.body.origin?.portalId || req.body.portalId;
+  const callbackId = req.body.callbackId;
 
   if (!portalId) {
     return res.status(400).json({ error: 'Missing portalId in request' });
@@ -140,7 +143,7 @@ function verifyWorkflowActionSignature(req, res, next) {
     }
 
     if (!isValid) {
-      console.error('Workflow action signature verification failed');
+      logger.error('Workflow action signature verification failed');
       return res.status(401).json({ error: 'Invalid HubSpot signature' });
     }
 
@@ -151,7 +154,7 @@ function verifyWorkflowActionSignature(req, res, next) {
 
   // No signature headers — require them in production
   if (process.env.NODE_ENV === 'production') {
-    console.error('Missing HubSpot signature headers in production');
+    logger.error('Missing HubSpot signature headers in production');
     return res.status(401).json({ error: 'Missing authentication signature' });
   }
 

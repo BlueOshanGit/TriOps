@@ -1,6 +1,7 @@
 const { Client } = require('@hubspot/api-client');
 const axios = require('axios');
 const Portal = require('../models/Portal');
+const logger = require('../utils/logger');
 
 const HUBSPOT_OAUTH_URL = 'https://api.hubapi.com/oauth/v1/token';
 
@@ -38,9 +39,7 @@ function getAuthorizationUrl(state) {
  */
 async function exchangeCodeForTokens(code) {
   const redirectUri = `${process.env.BASE_URL}/oauth/callback`;
-  console.log('Exchanging code for tokens...');
-  console.log('Redirect URI:', redirectUri);
-  console.log('Client ID:', process.env.HUBSPOT_CLIENT_ID);
+  logger.info('Exchanging code for tokens...');
 
   try {
     const response = await axios.post(HUBSPOT_OAUTH_URL, new URLSearchParams({
@@ -55,10 +54,10 @@ async function exchangeCodeForTokens(code) {
       }
     });
 
-    console.log('Token exchange successful');
+    logger.info('Token exchange successful');
     return response.data;
   } catch (error) {
-    console.error('Token exchange failed:', error.response?.data || error.message);
+    logger.error('Token exchange failed', { error: error.response?.data || error.message });
     throw error;
   }
 }
@@ -115,9 +114,9 @@ async function getValidAccessToken(portalId) {
       portal.tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
       await portal.save();
 
-      console.log(`Refreshed token for portal ${portalId}`);
+      logger.info(`Refreshed token for portal ${portalId}`);
     } catch (error) {
-      console.error(`Failed to refresh token for portal ${portalId}:`, error.message);
+      logger.error(`Failed to refresh token for portal ${portalId}`, { error: error.message });
       throw new Error('Failed to refresh HubSpot token');
     }
   }

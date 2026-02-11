@@ -5,6 +5,7 @@ const hubspotService = require('../services/hubspot');
 const Portal = require('../models/Portal');
 const OAuthState = require('../models/OAuthState');
 const { generateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 /**
  * Escape string for safe embedding in JavaScript
@@ -57,7 +58,7 @@ router.get('/authorize', async (req, res) => {
     const authUrl = hubspotService.getAuthorizationUrl(state);
     res.redirect(authUrl);
   } catch (error) {
-    console.error('OAuth authorize error:', error);
+    logger.error('OAuth authorize error', { error: error.message });
     res.status(500).send(`
       <html>
         <body>
@@ -77,11 +78,11 @@ router.get('/authorize', async (req, res) => {
 router.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
 
-  console.log('OAuth callback received:', { code: code ? 'present' : 'missing', state, error });
+  logger.info('OAuth callback received:', { code: code ? 'present' : 'missing', state, error });
 
   // Handle OAuth errors
   if (error) {
-    console.error('OAuth error:', error, error_description);
+    logger.error('OAuth error', { error: error, error_description });
     const safeErrorMessage = escapeHtml(error_description || error || 'Unknown error');
     return res.status(400).send(`
       <html>
@@ -96,7 +97,7 @@ router.get('/callback', async (req, res) => {
 
   // Check if code is provided
   if (!code) {
-    console.error('OAuth callback missing code parameter');
+    logger.error('OAuth callback missing code parameter');
     return res.status(400).send(`
       <html>
         <body>
@@ -113,12 +114,12 @@ router.get('/callback', async (req, res) => {
     let stateData = null;
     if (state) {
       stateData = await OAuthState.findOneAndDelete({ state });
-      console.log('State lookup result:', stateData ? 'found' : 'not found');
+      logger.info('State lookup result:', stateData ? 'found' : 'not found');
     }
 
     // Enforce state validation for CSRF protection
     if (!state || !stateData) {
-      console.error('OAuth state validation failed - rejecting request');
+      logger.error('OAuth state validation failed - rejecting request');
       return res.status(400).send(`
         <html>
           <body>
@@ -172,7 +173,7 @@ router.get('/callback', async (req, res) => {
     // Generate JWT for the frontend
     const jwt = generateToken(portal);
 
-    console.log(`Portal ${portal.portalId} connected successfully`);
+    logger.info(`Portal ${portal.portalId} connected successfully`);
 
     // Redirect to HubSpot or return success page
     if (stateData.returnUrl) {
@@ -234,7 +235,7 @@ router.get('/callback', async (req, res) => {
       `);
     }
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    logger.error('OAuth callback error', { error: error.message });
     const safeErrorMessage = escapeHtml(error.message || 'Unknown error');
     res.status(500).send(`
       <html>
@@ -281,7 +282,7 @@ router.post('/refresh', async (req, res) => {
       expiresAt: portal.tokenExpiresAt
     });
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error', { error: error.message });
     res.status(500).json({ error: 'Failed to refresh token' });
   }
 });
@@ -344,7 +345,7 @@ router.post('/disconnect', async (req, res) => {
 
     res.json({ success: true, message: 'Portal disconnected' });
   } catch (error) {
-    console.error('Disconnect error:', error);
+    logger.error('Disconnect error', { error: error.message });
     res.status(500).json({ error: 'Failed to disconnect' });
   }
 });

@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const Execution = require('../models/Execution');
+const logger = require('../utils/logger');
+
+// Allowed values for query param whitelisting
+const ALLOWED_SORTS_LOGS = ['-createdAt', 'createdAt', '-executionTimeMs', 'executionTimeMs', '-status', 'status'];
+const ALLOWED_ACTION_TYPES = ['webhook', 'code', 'format'];
+const ALLOWED_STATUSES = ['success', 'error', 'timeout'];
 
 // All routes require authentication
 router.use(requireAuth);
@@ -12,63 +18,62 @@ router.use(requireAuth);
  */
 router.get('/', async (req, res) => {
   try {
-    const {
-      actionType,
-      status,
-      snippetId,
-      workflowId,
-      startDate,
-      endDate,
-      limit = 50,
-      offset = 0,
-      sort = '-createdAt'
-    } = req.query;
+    // Sanitize pagination params
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const sort = ALLOWED_SORTS_LOGS.includes(req.query.sort) ? req.query.sort : '-createdAt';
+
+    const { actionType, status, snippetId, workflowId, startDate, endDate } = req.query;
 
     // Build query
     const query = { portalId: req.portalId };
 
-    if (actionType) {
+    if (actionType && ALLOWED_ACTION_TYPES.includes(actionType)) {
       query.actionType = actionType;
     }
 
-    if (status) {
+    if (status && ALLOWED_STATUSES.includes(status)) {
       query.status = status;
     }
 
     if (snippetId) {
-      query.snippetId = snippetId;
+      query.snippetId = String(snippetId);
     }
 
     if (workflowId) {
-      query.workflowId = workflowId;
+      query.workflowId = String(workflowId);
     }
 
-    // Date range filter
+    // Date range filter with validation
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) {
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
         query.createdAt.$gte = new Date(startDate);
       }
-      if (endDate) {
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
         query.createdAt.$lte = new Date(endDate);
+      }
+      // Remove empty createdAt filter
+      if (Object.keys(query.createdAt).length === 0) {
+        delete query.createdAt;
       }
     }
 
     const logs = await Execution.find(query)
       .sort(sort)
-      .skip(parseInt(offset, 10))
-      .limit(parseInt(limit, 10));
+      .skip(offset)
+      .limit(limit);
 
     const total = await Execution.countDocuments(query);
 
     res.json({
       logs,
       total,
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10)
+      limit,
+      offset
     });
   } catch (error) {
-    console.error('List logs error:', error);
+    logger.error('List logs error', { error: error.message });
     res.status(500).json({ error: 'Failed to list logs' });
   }
 });
@@ -80,9 +85,9 @@ router.get('/', async (req, res) => {
  */
 router.get('/stats/summary', async (req, res) => {
   try {
-    const { days = 7 } = req.query;
+    const days = Math.max(1, Math.min(parseInt(req.query.days, 10) || 7, 90));
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days, 10));
+    startDate.setDate(startDate.getDate() - days);
 
     const stats = await Execution.aggregate([
       {
@@ -134,7 +139,7 @@ router.get('/stats/summary', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get stats error:', error);
+    logger.error('Get stats error', { error: error.message });
     res.status(500).json({ error: 'Failed to get stats' });
   }
 });
@@ -145,9 +150,9 @@ router.get('/stats/summary', async (req, res) => {
  */
 router.get('/stats/daily', async (req, res) => {
   try {
-    const { days = 7 } = req.query;
+    const days = Math.max(1, Math.min(parseInt(req.query.days, 10) || 7, 90));
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days, 10));
+    startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
     const dailyStats = await Execution.aggregate([
@@ -182,7 +187,7 @@ router.get('/stats/daily', async (req, res) => {
 
     res.json({ dailyStats });
   } catch (error) {
-    console.error('Get daily stats error:', error);
+    logger.error('Get daily stats error', { error: error.message });
     res.status(500).json({ error: 'Failed to get daily stats' });
   }
 });
@@ -193,19 +198,19 @@ router.get('/stats/daily', async (req, res) => {
  */
 router.get('/errors/recent', async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 10, 100));
 
     const errors = await Execution.find({
       portalId: req.portalId,
       status: { $in: ['error', 'timeout'] }
     })
       .sort('-createdAt')
-      .limit(parseInt(limit, 10))
+      .limit(limit)
       .select('actionType snippetName webhookUrl status errorMessage createdAt workflowId');
 
     res.json({ errors });
   } catch (error) {
-    console.error('Get recent errors:', error);
+    logger.error('Get recent errors', { error: error.message });
     res.status(500).json({ error: 'Failed to get recent errors' });
   }
 });
@@ -229,7 +234,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(log);
   } catch (error) {
-    console.error('Get log error:', error);
+    logger.error('Get log error', { error: error.message });
     res.status(500).json({ error: 'Failed to get log' });
   }
 });

@@ -5,6 +5,7 @@ const Usage = require('../models/Usage');
 const Snippet = require('../models/Snippet');
 const Secret = require('../models/Secret');
 const Execution = require('../models/Execution');
+const logger = require('../utils/logger');
 
 // All routes require authentication
 router.use(requireAuth);
@@ -72,7 +73,7 @@ router.get('/', async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Get usage error:', error);
+    logger.error('Get usage error', { error: error.message });
     res.status(500).json({ error: 'Failed to get usage' });
   }
 });
@@ -103,7 +104,7 @@ router.get('/resources', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get resources error:', error);
+    logger.error('Get resources error', { error: error.message });
     res.status(500).json({ error: 'Failed to get resources' });
   }
 });
@@ -126,7 +127,7 @@ router.get('/top-snippets', async (req, res) => {
 
     res.json({ snippets });
   } catch (error) {
-    console.error('Get top snippets error:', error);
+    logger.error('Get top snippets error', { error: error.message });
     res.status(500).json({ error: 'Failed to get top snippets' });
   }
 });
@@ -178,7 +179,7 @@ router.get('/workflows', async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Get workflows error:', error);
+    logger.error('Get workflows error', { error: error.message });
     res.status(500).json({ error: 'Failed to get workflows' });
   }
 });
@@ -221,7 +222,7 @@ router.get('/hourly', async (req, res) => {
 
     res.json({ hourlyData });
   } catch (error) {
-    console.error('Get hourly stats error:', error);
+    logger.error('Get hourly stats error', { error: error.message });
     res.status(500).json({ error: 'Failed to get hourly stats' });
   }
 });

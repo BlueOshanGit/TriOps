@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { URL } = require('url');
+const logger = require('../utils/logger');
 
 /**
  * Private/internal IP ranges that should be blocked for SSRF protection
@@ -375,7 +376,7 @@ async function executeWebhook(config, context, timeout = 30000, retryConfig = {}
     // Wait before retry (skip for first attempt)
     if (attempt > 0) {
       const delay = calculateBackoffDelay(attempt - 1, retry);
-      console.log(`Webhook retry attempt ${attempt}/${retry.maxRetries} after ${delay}ms delay`);
+      logger.info(`Webhook retry attempt ${attempt}/${retry.maxRetries} after ${delay}ms delay`);
       await sleep(delay);
     }
 
@@ -405,7 +406,7 @@ async function executeWebhook(config, context, timeout = 30000, retryConfig = {}
 
     // Check if we should retry
     if (attempt < retry.maxRetries && isRetryable(result, result.error, retry)) {
-      console.log(`Webhook failed (${result.errorMessage || result.httpStatusCode}), will retry...`);
+      logger.info(`Webhook failed (${result.errorMessage || result.httpStatusCode}), will retry...`);
       continue;
     }
 

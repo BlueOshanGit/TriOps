@@ -1,8 +1,29 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const compression = require('compression');
+const mongoose = require('mongoose');
 const path = require('path');
 const connectDB = require('./config/database');
+const logger = require('./utils/logger');
+
+// --- Fix #2: Validate required environment variables at startup ---
+const requiredEnvVars = [
+  'MONGODB_URI',
+  'HUBSPOT_CLIENT_ID',
+  'HUBSPOT_CLIENT_SECRET',
+  'JWT_SECRET',
+  'ENCRYPTION_KEY',
+  'BASE_URL'
+];
+
+const missing = requiredEnvVars.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  logger.error(`Missing required environment variables: ${missing.join(', ')}`);
+  process.exit(1);
+}
 
 // Import routes
 const oauthRoutes = require('./routes/oauth');
@@ -15,36 +36,48 @@ const usageRoutes = require('./routes/usage');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-connectDB();
+// --- Fix #3: Security headers via helmet ---
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled for HubSpot iframe embedding
+  crossOriginEmbedderPolicy: false
+}));
 
-// CORS configuration for HubSpot domains and local development
-const corsOptions = {
-  origin: [
-    'https://app.hubspot.com',
-    'https://app-eu1.hubspot.com',
-    'https://app-na1.hubspot.com',
-    /\.hubspot\.com$/,
+// --- Fix #5: Environment-aware CORS configuration ---
+const corsOrigins = [
+  'https://app.hubspot.com',
+  'https://app-eu1.hubspot.com',
+  'https://app-na1.hubspot.com',
+  /^https:\/\/app[.-][a-z0-9]+\.hubspot\.com$/,
+  process.env.BASE_URL
+];
+
+if (process.env.NODE_ENV === 'development') {
+  corsOrigins.push(
     /\.ngrok-free\.dev$/,
     /\.ngrok\.io$/,
     'http://localhost:5173',
     'http://localhost:3000',
-    'http://127.0.0.1:5173',
-    process.env.BASE_URL
-  ].filter(Boolean),
+    'http://127.0.0.1:5173'
+  );
+}
+
+const corsOptions = {
+  origin: corsOrigins.filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-HubSpot-Signature', 'X-HubSpot-Signature-Version', 'ngrok-skip-browser-warning']
 };
 
 app.use(cors(corsOptions));
+app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(mongoSanitize());
 
 // Request logging in development
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+    logger.debug(`${req.method} ${req.path}`);
     next();
   });
 }
@@ -73,7 +106,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  logger.error('Unhandled error', { error: err.message, stack: err.stack });
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
@@ -85,9 +118,41 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`TriOps server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// --- Await DB connection before starting server + graceful shutdown ---
+let server;
+
+async function startServer() {
+  try {
+    await connectDB();
+    server = app.listen(PORT, () => {
+      logger.info(`TriOps server running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server', { error: error.message });
+    process.exit(1);
+  }
+}
+
+async function gracefulShutdown(signal) {
+  logger.info(`${signal} received. Shutting down gracefully...`);
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed');
+    });
+  }
+  try {
+    await mongoose.connection.close();
+    logger.info('MongoDB connection closed');
+  } catch (err) {
+    logger.error('Error closing MongoDB', { error: err.message });
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+startServer();
 
 module.exports = app;

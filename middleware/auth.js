@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Portal = require('../models/Portal');
+const logger = require('../utils/logger');
 
 /**
  * Generate JWT token for a portal
@@ -40,9 +41,12 @@ async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Portal not found or inactive' });
       }
 
-      // Update last activity
-      portal.lastActivityAt = new Date();
-      await portal.save();
+      // Throttle lastActivityAt updates (only save if >5 min since last update)
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (!portal.lastActivityAt || portal.lastActivityAt < fiveMinAgo) {
+        portal.lastActivityAt = new Date();
+        portal.save().catch(err => logger.error('Failed to update lastActivityAt', { error: err.message }));
+      }
 
       req.portal = portal;
       req.portalId = portal.portalId;
@@ -54,7 +58,7 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Invalid token' });
     }
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logger.error('Auth middleware error', { error: error.message });
     res.status(500).json({ error: 'Authentication error' });
   }
 }
@@ -95,10 +99,14 @@ async function optionalAuth(req, res, next) {
  * Used when embedded in HubSpot settings
  */
 function extractPortalFromQuery(req, res, next) {
-  const portalId = req.query.portalId || req.query.hub_id;
+  const raw = req.query.portalId || req.query.hub_id;
 
-  if (portalId) {
-    req.queryPortalId = portalId;
+  if (raw) {
+    // Only allow numeric portal IDs (HubSpot portal IDs are always integers)
+    const portalId = String(raw).replace(/\D/g, '');
+    if (portalId) {
+      req.queryPortalId = portalId;
+    }
   }
 
   next();

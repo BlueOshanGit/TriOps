@@ -9,6 +9,12 @@ const Snippet = require('../models/Snippet');
 const Secret = require('../models/Secret');
 const Execution = require('../models/Execution');
 const Usage = require('../models/Usage');
+const logger = require('../utils/logger');
+
+// Length limits to prevent resource abuse
+const MAX_FORMULA_LENGTH = 5000;   // Max characters for custom mode formulas
+const MAX_INLINE_CODE_LENGTH = 50000; // Max characters for inline code (~50KB)
+const MAX_INPUT_LENGTH = 10000;    // Max characters for individual format inputs
 
 /**
  * Formula Evaluation for Custom Mode
@@ -196,7 +202,7 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
   const {
     inputFields = {},
     object = {},
-    workflow = {}
+    context: workflow = {}
   } = req.body;
 
   // Extract webhook configuration from input fields
@@ -329,19 +335,23 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({ outputFields });
   } catch (error) {
-    console.error('Webhook action error:', error);
+    logger.error('Webhook action error', { error: error.message });
 
-    // Log error execution
-    await Execution.create({
-      portalId,
-      actionType: 'webhook',
-      webhookUrl,
-      webhookMethod,
-      workflowId: workflow?.workflowId,
-      status: 'error',
-      executionTimeMs: Date.now() - startTime,
-      errorMessage: error.message
-    });
+    // Log error execution — wrapped to prevent crash in error handler
+    try {
+      await Execution.create({
+        portalId,
+        actionType: 'webhook',
+        webhookUrl,
+        webhookMethod,
+        workflowId: workflow?.workflowId,
+        status: 'error',
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: error.message
+      });
+    } catch (logError) {
+      logger.error('Failed to log webhook error execution', { error: logError.message });
+    }
 
     res.json({
       outputFields: {
@@ -363,7 +373,7 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
   const {
     inputFields = {},
     object = {},
-    workflow = {}
+    context: workflow = {}
   } = req.body;
 
   const {
@@ -393,6 +403,14 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       }
       code = snippetDoc.code;
     } else if (inlineCode) {
+      if (String(inlineCode).length > MAX_INLINE_CODE_LENGTH) {
+        return res.json({
+          outputFields: {
+            triops_success: false,
+            triops_error: `Inline code too long (${String(inlineCode).length} chars). Maximum is ${MAX_INLINE_CODE_LENGTH} characters.`
+          }
+        });
+      }
       code = inlineCode;
     } else {
       return res.json({
@@ -422,7 +440,7 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
         secret.usageCount += 1;
         await secret.save();
       } catch (decryptError) {
-        console.error(`Failed to decrypt secret ${secret.name}:`, decryptError.message);
+        logger.error(`Failed to decrypt secret ${secret.name}`, { error: decryptError.message });
         secrets[secret.name] = null;
       }
     }
@@ -489,17 +507,21 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({ outputFields });
   } catch (error) {
-    console.error('Code action error:', error);
+    logger.error('Code action error', { error: error.message });
 
-    await Execution.create({
-      portalId,
-      actionType: 'code',
-      snippetId: inputFields.snippetId,
-      workflowId: workflow?.workflowId,
-      status: 'error',
-      executionTimeMs: Date.now() - startTime,
-      errorMessage: error.message
-    });
+    try {
+      await Execution.create({
+        portalId,
+        actionType: 'code',
+        snippetId: inputFields.snippetId,
+        workflowId: workflow?.workflowId,
+        status: 'error',
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: error.message
+      });
+    } catch (logError) {
+      logger.error('Failed to log code error execution', { error: logError.message });
+    }
 
     res.json({
       outputFields: {
@@ -521,7 +543,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
   const {
     inputFields = {},
     object = {},
-    workflow = {}
+    context: workflow = {}
   } = req.body;
 
   const {
@@ -541,6 +563,15 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         outputFields: {
           triops_success: false,
           triops_error: 'No formula specified in custom mode'
+        }
+      });
+    }
+
+    if (String(formula).length > MAX_FORMULA_LENGTH) {
+      return res.json({
+        outputFields: {
+          triops_success: false,
+          triops_error: `Formula too long (${String(formula).length} chars). Maximum is ${MAX_FORMULA_LENGTH} characters.`
         }
       });
     }
@@ -579,14 +610,18 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         }
       });
     } catch (formulaError) {
-      await Execution.create({
-        portalId,
-        actionType: 'format',
-        workflowId: workflow?.workflowId,
-        status: 'error',
-        executionTimeMs: Date.now() - startTime,
-        errorMessage: formulaError.message
-      });
+      try {
+        await Execution.create({
+          portalId,
+          actionType: 'format',
+          workflowId: workflow?.workflowId,
+          status: 'error',
+          executionTimeMs: Date.now() - startTime,
+          errorMessage: formulaError.message
+        });
+      } catch (logError) {
+        logger.error('Failed to log formula error execution', { error: logError.message });
+      }
 
       return res.json({
         outputFields: {
@@ -604,6 +639,18 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         triops_error: 'No operation specified'
       }
     });
+  }
+
+  // Validate input lengths for standard operations
+  for (const [label, val] of [['input1', input1], ['input2', input2], ['input3', input3]]) {
+    if (val && String(val).length > MAX_INPUT_LENGTH) {
+      return res.json({
+        outputFields: {
+          triops_success: false,
+          triops_error: `${label} too long (${String(val).length} chars). Maximum is ${MAX_INPUT_LENGTH} characters.`
+        }
+      });
+    }
   }
 
   try {
@@ -931,16 +978,20 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Format action error:', error);
+    logger.error('Format action error', { error: error.message });
 
-    await Execution.create({
-      portalId,
-      actionType: 'format',
-      workflowId: workflow?.workflowId,
-      status: 'error',
-      executionTimeMs: Date.now() - startTime,
-      errorMessage: error.message
-    });
+    try {
+      await Execution.create({
+        portalId,
+        actionType: 'format',
+        workflowId: workflow?.workflowId,
+        status: 'error',
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: error.message
+      });
+    } catch (logError) {
+      logger.error('Failed to log format error execution', { error: logError.message });
+    }
 
     res.json({
       outputFields: {
@@ -1024,11 +1075,9 @@ router.post('/test', async (req, res) => {
  * POST /v1/actions/simple-code
  */
 router.post('/simple-code', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'development') {
     return res.status(404).json({ error: 'Not found' });
   }
-
-  console.log('Simple code execution received:', JSON.stringify(req.body, null, 2));
 
   const {
     code,
@@ -1071,7 +1120,7 @@ router.post('/simple-code', async (req, res) => {
       error: result.errorMessage
     });
   } catch (error) {
-    console.error('Code execution error:', error.message);
+    logger.error('Code execution error', { error: error.message });
     res.json({
       success: false,
       error: error.message
@@ -1084,15 +1133,12 @@ router.post('/simple-code', async (req, res) => {
  * POST /v1/actions/simple-webhook
  */
 router.post('/simple-webhook', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'development') {
     return res.status(404).json({ error: 'Not found' });
   }
 
-  console.log('Simple webhook received:', JSON.stringify(req.body, null, 2));
-
   // HubSpot sends webhook config inside inputFields or fields
   const inputFields = req.body.inputFields || req.body.fields || req.body;
-  console.log('Extracted inputFields:', JSON.stringify(inputFields, null, 2));
 
   const {
     webhookUrl,
@@ -1108,7 +1154,6 @@ router.post('/simple-webhook', async (req, res) => {
   } = inputFields;
 
   const method = (webhookMethod || 'POST').toUpperCase();
-  console.log(`Webhook URL: ${webhookUrl}, Method: ${method}`);
 
   // If no webhookUrl provided, just echo back the received data
   if (!webhookUrl) {
@@ -1157,10 +1202,6 @@ router.post('/simple-webhook', async (req, res) => {
       body = otherData;
     }
 
-    console.log(`Sending ${method} request to: ${webhookUrl}`);
-    if (body) console.log(`Request body:`, JSON.stringify(body, null, 2));
-    if (params) console.log(`Query params:`, JSON.stringify(params, null, 2));
-
     // Build retry configuration
     const isRetryEnabled = retryEnabled === true || retryEnabled === 'true';
     const retryConfig = isRetryEnabled ? {
@@ -1179,9 +1220,6 @@ router.post('/simple-webhook', async (req, res) => {
       params
     }, {}, 30000, retryConfig);
 
-    console.log(`Webhook response: ${result.httpStatusCode} in ${result.totalExecutionTimeMs || result.executionTimeMs}ms`);
-    if (result.data) console.log(`Response data:`, typeof result.data === 'object' ? JSON.stringify(result.data, null, 2) : result.data);
-
     // Convert response to string for HubSpot output field compatibility
     const responseStr = result.data
       ? (typeof result.data === 'object' ? JSON.stringify(result.data) : String(result.data))
@@ -1196,7 +1234,7 @@ router.post('/simple-webhook', async (req, res) => {
       error: result.errorMessage
     });
   } catch (error) {
-    console.error('Webhook error:', error.message);
+    logger.error('Webhook error', { error: error.message });
 
     res.json({
       success: false,

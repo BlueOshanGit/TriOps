@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../services/encryption');
 const Secret = require('../models/Secret');
+const logger = require('../utils/logger');
 
 // All routes require authentication
 router.use(requireAuth);
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
 
     res.json({ secrets });
   } catch (error) {
-    console.error('List secrets error:', error);
+    logger.error('List secrets error', { error: error.message });
     res.status(500).json({ error: 'Failed to list secrets' });
   }
 });
@@ -84,7 +85,7 @@ router.post('/', async (req, res) => {
       createdAt: secret.createdAt
     });
   } catch (error) {
-    console.error('Create secret error:', error);
+    logger.error('Create secret error', { error: error.message });
 
     if (error.code === 11000) {
       return res.status(400).json({ error: 'A secret with this name already exists' });
@@ -133,7 +134,7 @@ router.put('/:id', async (req, res) => {
       updatedAt: secret.updatedAt
     });
   } catch (error) {
-    console.error('Update secret error:', error);
+    logger.error('Update secret error', { error: error.message });
     res.status(500).json({ error: 'Failed to update secret' });
   }
 });
@@ -155,7 +156,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ success: true, message: 'Secret deleted' });
   } catch (error) {
-    console.error('Delete secret error:', error);
+    logger.error('Delete secret error', { error: error.message });
     res.status(500).json({ error: 'Failed to delete secret' });
   }
 });
@@ -190,7 +191,7 @@ router.post('/:id/verify', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Verify secret error:', error);
+    logger.error('Verify secret error', { error: error.message });
     res.status(500).json({ error: 'Failed to verify secret' });
   }
 });

@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { validateCode } = require('../services/codeExecutor');
 const Snippet = require('../models/Snippet');
+const logger = require('../utils/logger');
 
 /**
  * Escape special regex characters to prevent ReDoS attacks
@@ -13,6 +14,9 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Allowed values for query param whitelisting
+const ALLOWED_SORTS_SNIPPETS = ['-updatedAt', 'updatedAt', '-createdAt', 'createdAt', '-name', 'name', '-executionCount', 'executionCount'];
+
 // All routes require authentication
 router.use(requireAuth);
 
@@ -22,7 +26,11 @@ router.use(requireAuth);
  */
 router.get('/', async (req, res) => {
   try {
-    const { search, sort = '-updatedAt', limit = 50, offset = 0 } = req.query;
+    // Sanitize pagination params
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 100));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const sort = ALLOWED_SORTS_SNIPPETS.includes(req.query.sort) ? req.query.sort : '-updatedAt';
+    const search = req.query.search ? String(req.query.search).slice(0, 200) : null;
 
     const query = { portalId: req.portalId, isActive: true };
 
@@ -38,19 +46,19 @@ router.get('/', async (req, res) => {
     const snippets = await Snippet.find(query)
       .select('-code') // Don't include code in list
       .sort(sort)
-      .skip(parseInt(offset, 10))
-      .limit(parseInt(limit, 10));
+      .skip(offset)
+      .limit(limit);
 
     const total = await Snippet.countDocuments(query);
 
     res.json({
       snippets,
       total,
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10)
+      limit,
+      offset
     });
   } catch (error) {
-    console.error('List snippets error:', error);
+    logger.error('List snippets error', { error: error.message });
     res.status(500).json({ error: 'Failed to list snippets' });
   }
 });
@@ -72,7 +80,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(snippet);
   } catch (error) {
-    console.error('Get snippet error:', error);
+    logger.error('Get snippet error', { error: error.message });
     res.status(500).json({ error: 'Failed to get snippet' });
   }
 });
@@ -135,8 +143,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(snippet);
   } catch (error) {
-    console.error('Create snippet error:', error.message);
-    console.error('Full error:', error);
+    logger.error('Create snippet error', { error: error.message });
 
     if (error.code === 11000) {
       return res.status(400).json({ error: 'A snippet with this name already exists' });
@@ -201,7 +208,7 @@ router.put('/:id', async (req, res) => {
 
     res.json(snippet);
   } catch (error) {
-    console.error('Update snippet error:', error);
+    logger.error('Update snippet error', { error: error.message });
 
     if (error.code === 11000) {
       return res.status(400).json({ error: 'A snippet with this name already exists' });
@@ -232,7 +239,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ success: true, message: 'Snippet deleted' });
   } catch (error) {
-    console.error('Delete snippet error:', error);
+    logger.error('Delete snippet error', { error: error.message });
     res.status(500).json({ error: 'Failed to delete snippet' });
   }
 });
@@ -266,7 +273,7 @@ router.post('/:id/test', async (req, res) => {
       try {
         secrets[secret.name] = decrypt(secret.encryptedValue, secret.iv, secret.authTag);
       } catch (decryptError) {
-        console.error(`Failed to decrypt secret ${secret.name}:`, decryptError.message);
+        logger.error(`Failed to decrypt secret ${secret.name}`, { error: decryptError.message });
         failedSecrets.push(secret.name);
         // Set to null so code can detect the secret exists but failed to decrypt
         secrets[secret.name] = null;
@@ -275,7 +282,7 @@ router.post('/:id/test', async (req, res) => {
 
     // Log warning if any secrets failed to decrypt
     if (failedSecrets.length > 0) {
-      console.warn(`[Portal ${req.portalId}] ${failedSecrets.length} secret(s) failed to decrypt during test: ${failedSecrets.join(', ')}`);
+      logger.warn(`[Portal ${req.portalId}] ${failedSecrets.length} secret(s) failed to decrypt during test: ${failedSecrets.join(', ')}`);
     }
 
     // Mock context for testing
@@ -302,7 +309,7 @@ router.post('/:id/test', async (req, res) => {
       error: result.errorMessage
     });
   } catch (error) {
-    console.error('Test snippet error:', error);
+    logger.error('Test snippet error', { error: error.message });
     res.status(500).json({ error: 'Failed to test snippet' });
   }
 });

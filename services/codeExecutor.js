@@ -33,10 +33,17 @@ async function executeCode(options) {
       }
     });
 
+    // Cleanup helper — clears timer and removes all listeners to prevent leaks
+    function cleanup() {
+      clearTimeout(timer);
+      worker.removeAllListeners();
+    }
+
     // Hard timeout — terminates the worker if it exceeds the limit
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        cleanup();
         worker.terminate();
         resolve({
           success: false,
@@ -51,7 +58,8 @@ async function executeCode(options) {
     worker.on('message', (result) => {
       if (!resolved) {
         resolved = true;
-        clearTimeout(timer);
+        cleanup();
+        worker.terminate();
         resolve(result);
       }
     });
@@ -59,7 +67,7 @@ async function executeCode(options) {
     worker.on('error', (error) => {
       if (!resolved) {
         resolved = true;
-        clearTimeout(timer);
+        cleanup();
         resolve({
           success: false,
           status: 'error',
@@ -73,7 +81,7 @@ async function executeCode(options) {
     worker.on('exit', (exitCode) => {
       if (!resolved) {
         resolved = true;
-        clearTimeout(timer);
+        cleanup();
         resolve({
           success: false,
           status: exitCode === null ? 'timeout' : 'error',
