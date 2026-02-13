@@ -4,24 +4,31 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "Format Data: Custom Mode",
-      "actionDescription": "Transform data with custom formulas using built-in functions and math",
-      "actionCardContent": "Custom formula"
+      "actionName": "Data & Logic",
+      "actionDescription": "Work with JSON data, set default values, or use conditional if/then/else logic",
+      "actionCardContent": "Data & Logic: {{operation}}"
     }
   },
   "inputFields": [
     {
       "typeDefinition": {
-        "name": "formula",
-        "type": "string",
-        "fieldType": "textarea"
+        "name": "operation",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "json_get", "label": "JSON: Get Value" },
+          { "value": "json_stringify", "label": "JSON: Convert to String" },
+          { "value": "json_parse", "label": "JSON: Parse String" },
+          { "value": "default_value", "label": "Default Value (if empty)" },
+          { "value": "conditional", "label": "If/Then/Else" }
+        ]
       },
       "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": true,
       "labels": {
         "en": {
-          "label": "Formula",
-          "description": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more"
+          "label": "Operation",
+          "description": "The data or logic operation to perform"
         }
       }
     },
@@ -32,11 +39,11 @@
         "fieldType": "text"
       },
       "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
+      "isRequired": true,
       "labels": {
         "en": {
-          "label": "Property 1",
-          "description": "Select a property to use in your formula"
+          "label": "Value / JSON",
+          "description": "The value to check, JSON string to parse, or object to extract from"
         }
       }
     },
@@ -50,8 +57,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 2",
-          "description": "Select a property to use in your formula"
+          "label": "Path / Default / Then",
+          "description": "JSON path for Get Value, default value for Default Value, or 'then' value for If/Then/Else"
         }
       }
     },
@@ -65,8 +72,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 3",
-          "description": "Select a property to use in your formula"
+          "label": "Else Value",
+          "description": "The 'else' value for If/Then/Else operation"
         }
       }
     }
@@ -101,7 +108,7 @@
       },
       "labels": {
         "en": {
-          "label": "Formula Result"
+          "label": "Formatted Result"
         }
       }
     },

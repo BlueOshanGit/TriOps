@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const Execution = require('../models/Execution');
@@ -223,6 +224,10 @@ router.get('/errors/recent', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid log ID format' });
+    }
+
     const log = await Execution.findOne({
       _id: req.params.id,
       portalId: req.portalId

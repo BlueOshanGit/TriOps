@@ -54,7 +54,7 @@ async function createWorkflowAction() {
     outputFields: [
       {
         typeDefinition: {
-          name: 'triops_success',
+          name: 'hubhacks_success',
           type: 'bool'
         },
         labels: {
@@ -70,8 +70,8 @@ async function createWorkflowAction() {
     console.log('Action definition ready:');
     console.log(JSON.stringify(actionDefinition, null, 2));
     console.log('\n---\nTo create this action, go to:');
-    console.log('https://app.hubspot.com/developer-projects/4066240/project/hubspot-triops');
-    console.log('\nClick on TriOps app -> Look for "Automation" or "Extensions" section');
+    console.log('https://app.hubspot.com/developer-projects/4066240/project/hubspot-hubhacks');
+    console.log('\nClick on HubHacks app -> Look for "Automation" or "Extensions" section');
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
   }

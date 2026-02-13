@@ -12,8 +12,8 @@ exports.main = async (context = {}) => {
   if (!webhookUrl) {
     return {
       outputFields: {
-        triops_success: false,
-        triops_error: 'Missing webhook URL'
+        hubhacks_success: false,
+        hubhacks_error: 'Missing webhook URL'
       }
     };
   }
@@ -45,17 +45,17 @@ exports.main = async (context = {}) => {
 
     return {
       outputFields: {
-        triops_success: true,
-        triops_status_code: response.status,
-        triops_error: ''
+        hubhacks_success: true,
+        hubhacks_status_code: response.status,
+        hubhacks_error: ''
       }
     };
   } catch (error) {
     return {
       outputFields: {
-        triops_success: false,
-        triops_status_code: error.response?.status || 0,
-        triops_error: error.message
+        hubhacks_success: false,
+        hubhacks_status_code: error.response?.status || 0,
+        hubhacks_error: error.message
       }
     };
   }

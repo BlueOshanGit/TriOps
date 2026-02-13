@@ -1,13 +1,16 @@
 {
-  "name": "TriOps",
+  "name": "HubHacks",
   "description": "Execute custom code and webhooks in HubSpot workflows",
-  "uid": "triops",
+  "uid": "hubhacks",
   "scopes": [
     "crm.objects.contacts.read",
     "crm.objects.contacts.write",
     "crm.objects.companies.read",
+    "crm.objects.companies.write",
     "crm.objects.deals.read",
-    "automation"
+    "crm.objects.deals.write",
+    "automation",
+    "oauth"
   ],
   "public": true,
   "extensions": {
@@ -22,12 +25,13 @@
     ],
     "requiredScopes": [
       "crm.objects.contacts.read",
-      "automation"
-    ],
-    "optionalScopes": [
       "crm.objects.contacts.write",
       "crm.objects.companies.read",
-      "crm.objects.deals.read"
+      "crm.objects.companies.write",
+      "crm.objects.deals.read",
+      "crm.objects.deals.write",
+      "automation",
+      "oauth"
     ]
   },
   "webhooks": {

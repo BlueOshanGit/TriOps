@@ -1,36 +1,61 @@
 // Use environment variable or default to proxy
 const API_BASE = import.meta.env.VITE_API_URL || ''
-console.log('API Base URL:', API_BASE)
 
 // Token management
 export function getToken() {
-  return localStorage.getItem('triops_token')
+  return localStorage.getItem('hubhacks_token')
 }
 
 export function setToken(token) {
   if (token) {
-    localStorage.setItem('triops_token', token)
+    localStorage.setItem('hubhacks_token', token)
   } else {
-    localStorage.removeItem('triops_token')
+    localStorage.removeItem('hubhacks_token')
   }
 }
+
+// Auth state change listeners (for 401 redirect)
+const authListeners = []
+export function onAuthChange(listener) {
+  authListeners.push(listener)
+  return () => {
+    const idx = authListeners.indexOf(listener)
+    if (idx >= 0) authListeners.splice(idx, 1)
+  }
+}
+
+function notifyAuthChange() {
+  authListeners.forEach(fn => fn())
+}
+
+// Request timeout in ms
+const REQUEST_TIMEOUT = 30000
 
 // API client with auth headers
 export const api = {
   async request(method, path, data = null) {
     const token = getToken()
     const headers = {
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true'  // Skip ngrok warning page
+      'Content-Type': 'application/json'
+    }
+
+    // Only send ngrok header in development
+    if (import.meta.env.DEV) {
+      headers['ngrok-skip-browser-warning'] = 'true'
     }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
 
+    // Create AbortController for request timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+
     const options = {
       method,
-      headers
+      headers,
+      signal: controller.signal
     }
 
     if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
@@ -38,27 +63,39 @@ export const api = {
     }
 
     const url = `${API_BASE}${path}`
-    console.log(`API Request: ${method} ${url}`)
 
     try {
       const response = await fetch(url, options)
-      console.log(`API Response: ${response.status}`)
 
       if (response.status === 401) {
         setToken(null)
+        notifyAuthChange()
         throw new Error('Unauthorized')
       }
 
-      const json = await response.json()
+      // Handle non-JSON responses safely
+      let json
+      try {
+        json = await response.json()
+      } catch {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`)
+        }
+        json = {}
+      }
 
       if (!response.ok) {
-        throw new Error(json.error || 'Request failed')
+        throw new Error(json.error || `Request failed with status ${response.status}`)
       }
 
       return { data: json, status: response.status }
     } catch (error) {
-      console.error('API Error:', error)
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out')
+      }
       throw error
+    } finally {
+      clearTimeout(timeoutId)
     }
   },
 

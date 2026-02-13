@@ -14,12 +14,16 @@ function getEncryptionKey() {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
   }
 
-  // If key is not 32 bytes, hash it to get consistent 32 bytes
-  if (key.length !== 32) {
-    return crypto.createHash('sha256').update(key).digest();
+  // Require a 64-char hex string (32 bytes) for proper AES-256 security
+  if (/^[0-9a-fA-F]{64}$/.test(key)) {
+    return Buffer.from(key, 'hex');
   }
 
-  return Buffer.from(key, 'utf8');
+  // Reject non-hex keys - they indicate a misconfiguration
+  throw new Error(
+    'ENCRYPTION_KEY must be a 64-character hex string (32 bytes). ' +
+    'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+  );
 }
 
 /**
@@ -28,6 +32,9 @@ function getEncryptionKey() {
  * @returns {Object} - Object containing encrypted data, IV, and auth tag
  */
 function encrypt(plaintext) {
+  if (typeof plaintext !== 'string') {
+    throw new Error('encrypt() requires a string argument');
+  }
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
 
@@ -53,6 +60,12 @@ function encrypt(plaintext) {
  * @returns {string} - The decrypted plaintext
  */
 function decrypt(encryptedValue, ivHex, authTagHex) {
+  if (!encryptedValue || !ivHex || !authTagHex) {
+    throw new Error('decrypt() requires encryptedValue, iv, and authTag');
+  }
+  if (!/^[0-9a-fA-F]+$/.test(ivHex) || !/^[0-9a-fA-F]+$/.test(authTagHex)) {
+    throw new Error('decrypt() iv and authTag must be hex strings');
+  }
   const key = getEncryptionKey();
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');

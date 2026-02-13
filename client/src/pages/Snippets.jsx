@@ -18,8 +18,9 @@ function Snippets() {
   const loadSnippets = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data } = await snippetsApi.list({ search })
-      setSnippets(data.snippets)
+      setSnippets(data.snippets || [])
     } catch (err) {
       setError(err.message)
     } finally {

@@ -37,20 +37,29 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name and value are required' });
     }
 
-    // Validate name format (uppercase, underscores only)
+    // Validate name format (uppercase, underscores only) and length
     if (!/^[A-Z][A-Z0-9_]*$/.test(name)) {
       return res.status(400).json({
         error: 'Secret name must start with an uppercase letter and contain only uppercase letters, numbers, and underscores (e.g., API_KEY, MY_SECRET_123)'
       });
     }
 
+    if (name.length > 128) {
+      return res.status(400).json({ error: 'Secret name must be 128 characters or less' });
+    }
+
+    if (value.length > 10000) {
+      return res.status(400).json({ error: 'Secret value must be 10,000 characters or less' });
+    }
+
     // Check secret limit
     const portal = req.portal;
     const currentCount = await Secret.countDocuments({ portalId: req.portalId });
 
-    if (currentCount >= portal.settings.maxSecrets) {
+    const maxSecrets = portal.settings?.maxSecrets || 50;
+    if (currentCount >= maxSecrets) {
       return res.status(400).json({
-        error: `Secret limit reached (${portal.settings.maxSecrets})`
+        error: `Secret limit reached (${maxSecrets})`
       });
     }
 
@@ -98,15 +107,19 @@ router.post('/', async (req, res) => {
 /**
  * Update a secret's value
  * PUT /api/secrets/:id
+ * :id can be a MongoDB ObjectId or the secret name
  */
 router.put('/:id', async (req, res) => {
   try {
     const { value, description } = req.body;
 
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      portalId: req.portalId
-    });
+    const mongoose = require('mongoose');
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id);
+    const query = isObjectId
+      ? { _id: req.params.id, portalId: req.portalId }
+      : { name: req.params.id, portalId: req.portalId };
+
+    const secret = await Secret.findOne(query);
 
     if (!secret) {
       return res.status(404).json({ error: 'Secret not found' });
@@ -142,13 +155,17 @@ router.put('/:id', async (req, res) => {
 /**
  * Delete a secret
  * DELETE /api/secrets/:id
+ * :id can be a MongoDB ObjectId or the secret name
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await Secret.deleteOne({
-      _id: req.params.id,
-      portalId: req.portalId
-    });
+    const mongoose = require('mongoose');
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id);
+    const query = isObjectId
+      ? { _id: req.params.id, portalId: req.portalId }
+      : { name: req.params.id, portalId: req.portalId };
+
+    const result = await Secret.deleteOne(query);
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Secret not found' });
@@ -164,25 +181,27 @@ router.delete('/:id', async (req, res) => {
 /**
  * Verify a secret exists and can be decrypted
  * POST /api/secrets/:id/verify
+ * :id can be a MongoDB ObjectId or the secret name
  */
 router.post('/:id/verify', async (req, res) => {
   try {
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      portalId: req.portalId
-    });
+    const mongoose = require('mongoose');
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id);
+    const query = isObjectId
+      ? { _id: req.params.id, portalId: req.portalId }
+      : { name: req.params.id, portalId: req.portalId };
+
+    const secret = await Secret.findOne(query);
 
     if (!secret) {
       return res.status(404).json({ error: 'Secret not found' });
     }
 
-    // Try to decrypt
+    // Try to decrypt — only confirm validity, never leak content
     try {
-      const decrypted = decrypt(secret.encryptedValue, secret.iv, secret.authTag);
+      decrypt(secret.encryptedValue, secret.iv, secret.authTag);
       res.json({
-        valid: true,
-        length: decrypted.length,
-        preview: decrypted.slice(0, 3) + '***' // Show first 3 chars only
+        valid: true
       });
     } catch (decryptError) {
       res.json({

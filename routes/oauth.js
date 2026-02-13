@@ -4,8 +4,31 @@ const router = express.Router();
 const hubspotService = require('../services/hubspot');
 const Portal = require('../models/Portal');
 const OAuthState = require('../models/OAuthState');
-const { generateToken } = require('../middleware/auth');
+const { generateToken, requireAuth } = require('../middleware/auth');
 const logger = require('../utils/logger');
+
+/**
+ * Validate returnUrl to prevent open redirect attacks
+ * Only allows relative paths or same-origin URLs
+ */
+function isValidReturnUrl(returnUrl) {
+  if (!returnUrl) return true;
+  // Allow relative paths
+  if (returnUrl.startsWith('/')) return true;
+  // Allow same-origin base URL
+  try {
+    const baseUrl = process.env.BASE_URL;
+    if (baseUrl && returnUrl.startsWith(baseUrl)) return true;
+    // In development, allow localhost
+    if (process.env.NODE_ENV !== 'production') {
+      const parsed = new URL(returnUrl);
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 /**
  * Escape string for safe embedding in JavaScript
@@ -49,10 +72,16 @@ router.get('/authorize', async (req, res) => {
     // Generate state for CSRF protection
     const state = crypto.randomBytes(16).toString('hex');
 
+    // Validate returnUrl to prevent open redirect
+    const returnUrl = req.query.returnUrl;
+    if (returnUrl && !isValidReturnUrl(returnUrl)) {
+      return res.status(400).json({ error: 'Invalid return URL' });
+    }
+
     // Store state in MongoDB (automatically expires after 10 minutes via TTL index)
     await OAuthState.create({
       state,
-      returnUrl: req.query.returnUrl
+      returnUrl
     });
 
     const authUrl = hubspotService.getAuthorizationUrl(state);
@@ -140,15 +169,24 @@ router.get('/callback', async (req, res) => {
     // Calculate token expiry
     const tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    // Upsert portal record
+    // Encrypt tokens before storing
+    const { encrypt } = require('../services/encryption');
+    const encAccess = encrypt(tokenData.access_token);
+    const encRefresh = encrypt(tokenData.refresh_token);
+
+    // Upsert portal record with encrypted tokens
     const portal = await Portal.findOneAndUpdate(
       { portalId: String(tokenInfo.hub_id) },
       {
         $set: {
           portalId: String(tokenInfo.hub_id),
           hubId: String(tokenInfo.hub_id),
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
+          accessToken: encAccess.encryptedValue,
+          accessTokenIv: encAccess.iv,
+          accessTokenAuthTag: encAccess.authTag,
+          refreshToken: encRefresh.encryptedValue,
+          refreshTokenIv: encRefresh.iv,
+          refreshTokenAuthTag: encRefresh.authTag,
           tokenExpiresAt,
           scopes: tokenInfo.scopes || [],
           hubDomain: tokenInfo.hub_domain,
@@ -194,7 +232,7 @@ router.get('/callback', async (req, res) => {
       res.send(`
         <html>
           <head>
-            <title>TriOps - Connected!</title>
+            <title>HubHacks - Connected!</title>
             <style>
               body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
               .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 400px; }
@@ -209,19 +247,19 @@ router.get('/callback', async (req, res) => {
             <div class="card">
               <div class="success-icon">✓</div>
               <h1>Successfully Connected!</h1>
-              <p>TriOps has been installed in your HubSpot portal.</p>
+              <p>HubHacks has been installed in your HubSpot portal.</p>
               <p><strong>Portal ID:</strong> ${safePortalId}</p>
               <div class="spinner"></div>
               <p>Redirecting to dashboard...</p>
             </div>
             <script>
               // Store token in localStorage
-              localStorage.setItem('triops_token', '${safeJwt}');
+              localStorage.setItem('hubhacks_token', '${safeJwt}');
 
               // If in popup, close and notify parent
               if (window.opener) {
                 window.opener.postMessage({ type: 'OAUTH_SUCCESS', token: '${safeJwt}' }, '${escapeForJs(frontendUrl)}');
-                try { window.opener.localStorage.setItem('triops_token', '${safeJwt}'); } catch(e) {}
+                try { window.opener.localStorage.setItem('hubhacks_token', '${safeJwt}'); } catch(e) {}
                 window.close();
               } else {
                 // Redirect to frontend dashboard after a short delay
@@ -252,13 +290,10 @@ router.get('/callback', async (req, res) => {
 /**
  * Refresh token endpoint
  * POST /oauth/refresh
+ * Requires authentication — caller must present a valid JWT
  */
-router.post('/refresh', async (req, res) => {
-  const { portalId } = req.body;
-
-  if (!portalId) {
-    return res.status(400).json({ error: 'Portal ID required' });
-  }
+router.post('/refresh', requireAuth, async (req, res) => {
+  const portalId = req.portalId;
 
   try {
     const portal = await Portal.findOne({ portalId });
@@ -267,10 +302,9 @@ router.post('/refresh', async (req, res) => {
       return res.status(404).json({ error: 'Portal not found' });
     }
 
-    const tokenData = await hubspotService.refreshAccessToken(portal.refreshToken);
+    const tokenData = await hubspotService.refreshAccessToken(portal.getRefreshToken());
 
-    portal.accessToken = tokenData.access_token;
-    portal.refreshToken = tokenData.refresh_token;
+    portal.setTokens(tokenData.access_token, tokenData.refresh_token);
     portal.tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
     await portal.save();
 
@@ -290,48 +324,28 @@ router.post('/refresh', async (req, res) => {
 /**
  * Get current portal info
  * GET /oauth/me
+ * Uses requireAuth middleware which checks isActive on the portal
  */
-router.get('/me', async (req, res) => {
-  const authHeader = req.headers.authorization;
+router.get('/me', requireAuth, async (req, res) => {
+  const portal = req.portal;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    const jwt = require('jsonwebtoken');
-    const token = authHeader.slice(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const portal = await Portal.findOne({ portalId: decoded.portalId });
-
-    if (!portal) {
-      return res.status(404).json({ error: 'Portal not found' });
-    }
-
-    res.json({
-      portalId: portal.portalId,
-      hubDomain: portal.hubDomain,
-      userEmail: portal.userEmail,
-      installedAt: portal.installedAt,
-      lastActivityAt: portal.lastActivityAt,
-      settings: portal.settings
-    });
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+  res.json({
+    portalId: portal.portalId,
+    hubDomain: portal.hubDomain,
+    userEmail: portal.userEmail,
+    installedAt: portal.installedAt,
+    lastActivityAt: portal.lastActivityAt,
+    settings: portal.settings
+  });
 });
 
 /**
  * Disconnect/uninstall
  * POST /oauth/disconnect
+ * Requires authentication — caller must present a valid JWT
  */
-router.post('/disconnect', async (req, res) => {
-  const { portalId } = req.body;
-
-  if (!portalId) {
-    return res.status(400).json({ error: 'Portal ID required' });
-  }
+router.post('/disconnect', requireAuth, async (req, res) => {
+  const portalId = req.portalId;
 
   try {
     const portal = await Portal.findOne({ portalId });

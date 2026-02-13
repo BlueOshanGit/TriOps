@@ -1,5 +1,5 @@
 {
-  "uid": "triops_format_data",
+  "uid": "hubhacks_format_data",
   "type": "workflow-action",
   "config": {
     "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/format",
@@ -91,13 +91,13 @@
     "outputFields": [
       {
         "typeDefinition": {
-          "name": "triops_success",
+          "name": "hubhacks_success",
           "type": "bool"
         }
       },
       {
         "typeDefinition": {
-          "name": "triops_error",
+          "name": "hubhacks_error",
           "type": "string"
         }
       },
@@ -134,8 +134,8 @@
           "formatOptions": "Additional options: decimal places (2), currency code (USD), date format (YYYY-MM-DD), etc."
         },
         "outputFieldLabels": {
-          "triops_success": "Success",
-          "triops_error": "Error Message",
+          "hubhacks_success": "Success",
+          "hubhacks_error": "Error Message",
           "result": "Formatted Result",
           "result_number": "Result (Number)"
         }

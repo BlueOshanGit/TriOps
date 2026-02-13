@@ -4,24 +4,30 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "Format Data: Custom Mode",
-      "actionDescription": "Transform data with custom formulas using built-in functions and math",
-      "actionCardContent": "Custom formula"
+      "actionName": "Transform Text",
+      "actionDescription": "Concatenate, extract substring, find & replace, or split text",
+      "actionCardContent": "Transform Text: {{operation}}"
     }
   },
   "inputFields": [
     {
       "typeDefinition": {
-        "name": "formula",
-        "type": "string",
-        "fieldType": "textarea"
+        "name": "operation",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "concat", "label": "Concatenate" },
+          { "value": "substring", "label": "Extract Substring" },
+          { "value": "replace", "label": "Find & Replace" },
+          { "value": "split", "label": "Split by Delimiter" }
+        ]
       },
       "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": true,
       "labels": {
         "en": {
-          "label": "Formula",
-          "description": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more"
+          "label": "Operation",
+          "description": "The text transformation to perform"
         }
       }
     },
@@ -32,11 +38,11 @@
         "fieldType": "text"
       },
       "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
+      "isRequired": true,
       "labels": {
         "en": {
-          "label": "Property 1",
-          "description": "Select a property to use in your formula"
+          "label": "Text",
+          "description": "The primary text value (or first value for concatenation)"
         }
       }
     },
@@ -50,8 +56,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 2",
-          "description": "Select a property to use in your formula"
+          "label": "Second Value",
+          "description": "Second text for concat, start index for substring, search string for replace, delimiter for split"
         }
       }
     },
@@ -65,8 +71,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 3",
-          "description": "Select a property to use in your formula"
+          "label": "Third Value",
+          "description": "Third text for concat, end index for substring, replacement string for replace"
         }
       }
     }
@@ -101,7 +107,7 @@
       },
       "labels": {
         "en": {
-          "label": "Formula Result"
+          "label": "Formatted Result"
         }
       }
     },

@@ -1,5 +1,6 @@
 const { Worker } = require('worker_threads');
 const path = require('path');
+const vm = require('vm');
 
 /**
  * Execute JavaScript code in a sandboxed worker thread
@@ -68,6 +69,7 @@ async function executeCode(options) {
       if (!resolved) {
         resolved = true;
         cleanup();
+        worker.terminate();
         resolve({
           success: false,
           status: 'error',
@@ -103,7 +105,7 @@ async function executeCode(options) {
  */
 function validateCode(code) {
   try {
-    new Function(code);
+    new vm.Script(code, { filename: 'validation.js' });
     return { valid: true };
   } catch (error) {
     return {
@@ -120,8 +122,12 @@ function validateCode(code) {
  * @returns {number|null} - Line number or null
  */
 function extractLineNumber(error) {
-  const match = error.message.match(/at line (\d+)/);
-  return match ? parseInt(match[1], 10) : null;
+  // Try V8 stack trace format first (e.g., "validation.js:5:10")
+  const stackMatch = error.stack && error.stack.match(/:(\d+):\d+/);
+  if (stackMatch) return parseInt(stackMatch[1], 10);
+  // Fallback: "at line N" or "(N:M)" format
+  const msgMatch = error.message.match(/at line (\d+)/) || error.message.match(/\((\d+):\d+\)/);
+  return msgMatch ? parseInt(msgMatch[1], 10) : null;
 }
 
 /**

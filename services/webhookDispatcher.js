@@ -1,6 +1,24 @@
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const { URL } = require('url');
+const dns = require('dns');
+const { promisify } = require('util');
 const logger = require('../utils/logger');
+
+const dnsLookup = promisify(dns.lookup);
+
+/**
+ * Resolve all IP addresses for a hostname (IPv4 + IPv6)
+ */
+function dnsLookupAll(hostname) {
+  return new Promise((resolve, reject) => {
+    dns.lookup(hostname, { all: true }, (err, addresses) => {
+      if (err) reject(err);
+      else resolve(addresses || []);
+    });
+  });
+}
 
 /**
  * Private/internal IP ranges that should be blocked for SSRF protection
@@ -12,7 +30,7 @@ const BLOCKED_IP_PATTERNS = [
   /^192\.168\./,                     // Private Class C (192.168.0.0/16)
   /^169\.254\./,                     // Link-local (169.254.0.0/16)
   /^0\./,                            // Current network (0.0.0.0/8)
-  /^100\.(6[4-9]|[7-9][0-9]|1[0-2][0-7])\./,  // Carrier-grade NAT (100.64.0.0/10)
+  /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./,  // Carrier-grade NAT (100.64.0.0/10)
   /^192\.0\.0\./,                    // IETF Protocol Assignments (192.0.0.0/24)
   /^192\.0\.2\./,                    // TEST-NET-1 (192.0.2.0/24)
   /^198\.51\.100\./,                 // TEST-NET-2 (198.51.100.0/24)
@@ -95,6 +113,47 @@ function validateWebhookUrl(urlString) {
   }
 
   return { valid: true };
+}
+
+/**
+ * Check if a resolved IP address is in a blocked range
+ * @param {string} ip - Resolved IP address
+ * @returns {boolean} - True if blocked
+ */
+function isBlockedIP(ip) {
+  for (const pattern of BLOCKED_IP_PATTERNS) {
+    if (pattern.test(ip)) return true;
+  }
+  if (BLOCKED_HOSTNAMES.includes(ip)) return true;
+  return false;
+}
+
+/**
+ * Resolve hostname and validate the resolved IP against blocked ranges
+ * Prevents DNS rebinding SSRF attacks
+ * Resolves ALL addresses (IPv4 + IPv6) for Node.js 24+ Happy Eyeballs support
+ * @param {string} hostname - Hostname to resolve
+ * @returns {Object} - { valid: boolean, resolvedAddresses?: Array, error?: string }
+ */
+async function validateResolvedIP(hostname) {
+  // Skip DNS check for direct IP addresses (already validated by validateWebhookUrl)
+  const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) return { valid: true };
+
+  try {
+    const addresses = await dnsLookupAll(hostname);
+    if (!addresses || addresses.length === 0) {
+      return { valid: false, error: `DNS resolution returned no addresses for '${hostname}'` };
+    }
+    for (const entry of addresses) {
+      if (isBlockedIP(entry.address)) {
+        return { valid: false, error: `Hostname '${hostname}' resolves to blocked IP '${entry.address}'` };
+      }
+    }
+    return { valid: true, resolvedAddresses: addresses };
+  } catch (err) {
+    return { valid: false, error: `DNS resolution failed for '${hostname}': ${err.code || err.message}` };
+  }
 }
 
 /**
@@ -181,15 +240,22 @@ function processTemplate(template, context) {
  * Process an object's values recursively with templates
  * @param {Object} obj - Object to process
  * @param {Object} context - Context for templates
+ * @param {number} depth - Current recursion depth (prevents stack overflow)
  * @returns {Object} - Processed object
  */
-function processObjectTemplates(obj, context) {
+const MAX_TEMPLATE_DEPTH = 20;
+
+function processObjectTemplates(obj, context, depth = 0) {
   if (!obj || typeof obj !== 'object') {
     return obj;
   }
 
+  if (depth >= MAX_TEMPLATE_DEPTH) {
+    return obj; // Stop recursing at depth limit
+  }
+
   if (Array.isArray(obj)) {
-    return obj.map(item => processObjectTemplates(item, context));
+    return obj.map(item => processObjectTemplates(item, context, depth + 1));
   }
 
   const result = {};
@@ -197,7 +263,7 @@ function processObjectTemplates(obj, context) {
     if (typeof value === 'string') {
       result[key] = processTemplate(value, context);
     } else if (typeof value === 'object') {
-      result[key] = processObjectTemplates(value, context);
+      result[key] = processObjectTemplates(value, context, depth + 1);
     } else {
       result[key] = value;
     }
@@ -211,9 +277,10 @@ function processObjectTemplates(obj, context) {
  * @param {Object} context - Context data from HubSpot workflow
  * @param {number} timeout - Request timeout in ms
  * @param {boolean} skipValidation - Skip URL validation (used when called from executeWebhook which already validated)
+ * @param {Array|null} resolvedAddresses - Pre-resolved addresses to use (prevents DNS rebinding TOCTOU)
  * @returns {Object} - Response data
  */
-async function executeSingleRequest(config, context, timeout = 30000, skipValidation = false) {
+async function executeSingleRequest(config, context, timeout = 30000, skipValidation = false, resolvedAddresses = null) {
   const startTime = Date.now();
 
   // Process templates in URL and body
@@ -236,7 +303,7 @@ async function executeSingleRequest(config, context, timeout = 30000, skipValida
   // Build headers
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': 'TriOps/1.0',
+    'User-Agent': 'HubHacks/1.0',
     ...(config.headers ? processObjectTemplates(config.headers, context) : {})
   };
 
@@ -267,17 +334,32 @@ async function executeSingleRequest(config, context, timeout = 30000, skipValida
     }
   }
 
+  // Create custom agents that pin to the validated IP to prevent DNS rebinding
+  const axiosOptions = {
+    method,
+    url,
+    headers,
+    data,
+    params,
+    timeout,
+    validateStatus: () => true // Don't throw on any status code
+  };
+
+  if (resolvedAddresses && resolvedAddresses.length > 0) {
+    const pinnedLookup = (_hostname, options, cb) => {
+      if (options && options.all) {
+        cb(null, resolvedAddresses);
+      } else {
+        cb(null, resolvedAddresses[0].address, resolvedAddresses[0].family);
+      }
+    };
+    axiosOptions.httpAgent = new http.Agent({ lookup: pinnedLookup });
+    axiosOptions.httpsAgent = new https.Agent({ lookup: pinnedLookup });
+  }
+
   let error = null;
   try {
-    const response = await axios({
-      method,
-      url,
-      headers,
-      data,
-      params,
-      timeout,
-      validateStatus: () => true // Don't throw on any status code
-    });
+    const response = await axios(axiosOptions);
 
     const executionTimeMs = Date.now() - startTime;
 
@@ -293,6 +375,15 @@ async function executeSingleRequest(config, context, timeout = 30000, skipValida
 
     const isSuccess = response.status >= 200 && response.status < 300;
 
+    // Limit response data size to prevent memory issues
+    let limitedData = responseData;
+    if (typeof responseData === 'object') {
+      const serialized = JSON.stringify(responseData);
+      if (serialized.length > 100000) { // 100KB limit
+        limitedData = JSON.parse(serialized.slice(0, 100000));
+      }
+    }
+
     return {
       success: isSuccess,
       status: isSuccess ? 'success' : 'error',
@@ -300,7 +391,7 @@ async function executeSingleRequest(config, context, timeout = 30000, skipValida
       httpResponse: typeof responseData === 'object'
         ? JSON.stringify(responseData).slice(0, 10000)
         : String(responseData).slice(0, 10000),
-      data: responseData,
+      data: limitedData,
       executionTimeMs,
       headers: response.headers,
       error: null
@@ -358,6 +449,36 @@ async function executeWebhook(config, context, timeout = 30000, retryConfig = {}
     };
   }
 
+  // Resolve DNS and check resolved IP against blocked ranges (prevent DNS rebinding)
+  // Pin the resolved IPs so the actual HTTP request uses the same IPs we validated
+  let resolvedAddresses = null;
+  try {
+    const parsedUrl = new URL(processedUrl);
+    const dnsCheck = await validateResolvedIP(parsedUrl.hostname);
+    if (!dnsCheck.valid) {
+      return {
+        success: false,
+        status: 'error',
+        errorMessage: `SSRF protection: ${dnsCheck.error}`,
+        executionTimeMs: Date.now() - totalStartTime,
+        totalExecutionTimeMs: Date.now() - totalStartTime,
+        attempts: [],
+        retriesUsed: 0
+      };
+    }
+    resolvedAddresses = dnsCheck.resolvedAddresses || null; // null for direct IP addresses
+  } catch (dnsError) {
+    return {
+      success: false,
+      status: 'error',
+      errorMessage: `DNS validation failed: ${dnsError.message}`,
+      executionTimeMs: Date.now() - totalStartTime,
+      totalExecutionTimeMs: Date.now() - totalStartTime,
+      attempts: [],
+      retriesUsed: 0
+    };
+  }
+
   // Merge retry config with defaults
   const retry = {
     ...DEFAULT_RETRY_CONFIG,
@@ -366,7 +487,7 @@ async function executeWebhook(config, context, timeout = 30000, retryConfig = {}
 
   // Disable retry if maxRetries is 0
   if (retry.maxRetries === 0) {
-    return executeSingleRequest(config, context, timeout, true); // skip validation - already done
+    return executeSingleRequest(config, context, timeout, true, resolvedAddresses); // skip validation - already done
   }
 
   let lastResult = null;
@@ -380,8 +501,8 @@ async function executeWebhook(config, context, timeout = 30000, retryConfig = {}
       await sleep(delay);
     }
 
-    // Execute the request (skip validation - already done above)
-    const result = await executeSingleRequest(config, context, timeout, true);
+    // Execute the request (skip validation - already done above, pin to validated IPs)
+    const result = await executeSingleRequest(config, context, timeout, true, resolvedAddresses);
 
     // Track attempt info
     attempts.push({
@@ -460,6 +581,9 @@ function extractOutputFields(response, outputMappings) {
  * @param {string} path - Dot-notation path (e.g., "data.user.name")
  * @returns {any} - Value at path or undefined
  */
+// Keys that must never be traversed to prevent prototype pollution reads
+const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function getValueByPath(obj, path) {
   const parts = path.split('.');
   let current = obj;
@@ -472,13 +596,17 @@ function getValueByPath(obj, path) {
     // Handle array index notation like "items[0]"
     const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
     if (arrayMatch) {
-      current = current[arrayMatch[1]];
+      const key = arrayMatch[1];
+      if (BLOCKED_KEYS.has(key)) return undefined;
+      current = current[key];
       if (Array.isArray(current)) {
         current = current[parseInt(arrayMatch[2], 10)];
       } else {
         return undefined;
       }
     } else {
+      if (BLOCKED_KEYS.has(part)) return undefined;
+      if (!Object.prototype.hasOwnProperty.call(current, part)) return undefined;
       current = current[part];
     }
   }
@@ -494,5 +622,6 @@ module.exports = {
   extractOutputFields,
   getValueByPath,
   validateWebhookUrl,
+  validateResolvedIP,
   DEFAULT_RETRY_CONFIG
 };

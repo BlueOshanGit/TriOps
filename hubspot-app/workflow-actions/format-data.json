@@ -1,7 +1,7 @@
 {
   "actionType": "WEBHOOK",
   "actionUrl": "https://reena-noncorroborating-readily.ngrok-free.dev/v1/actions/format",
-  "published": true,
+  "published": false,
   "labels": {
     "en": {
       "actionName": "Format Data",
@@ -121,7 +121,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "triops_success",
+        "name": "hubhacks_success",
         "type": "bool"
       },
       "labels": {
@@ -132,7 +132,7 @@
     },
     {
       "typeDefinition": {
-        "name": "triops_error",
+        "name": "hubhacks_error",
         "type": "string"
       },
       "labels": {
@@ -169,13 +169,13 @@
     {
       "labelName": "Continue on success",
       "conditions": {
-        "triops_success": true
+        "hubhacks_success": true
       }
     },
     {
       "labelName": "Handle error",
       "conditions": {
-        "triops_success": false
+        "hubhacks_success": false
       }
     }
   ]

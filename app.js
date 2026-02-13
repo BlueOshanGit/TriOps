@@ -38,7 +38,23 @@ const PORT = process.env.PORT || 3000;
 
 // --- Fix #3: Security headers via helmet ---
 app.use(helmet({
-  contentSecurityPolicy: false, // Disabled for HubSpot iframe embedding
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", process.env.BASE_URL].filter(Boolean),
+      frameSrc: ["'none'"],
+      frameAncestors: [
+        "'self'",
+        "https://app.hubspot.com",
+        "https://app-eu1.hubspot.com",
+        "https://app-na1.hubspot.com",
+        "https://*.hubspot.com"
+      ]
+    }
+  },
   crossOriginEmbedderPolicy: false
 }));
 
@@ -125,7 +141,7 @@ async function startServer() {
   try {
     await connectDB();
     server = app.listen(PORT, () => {
-      logger.info(`TriOps server running on port ${PORT}`);
+      logger.info(`HubHacks server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
@@ -136,16 +152,24 @@ async function startServer() {
 
 async function gracefulShutdown(signal) {
   logger.info(`${signal} received. Shutting down gracefully...`);
-  if (server) {
-    server.close(() => {
-      logger.info('HTTP server closed');
-    });
-  }
   try {
+    if (server) {
+      await new Promise((resolve) => {
+        const forceTimer = setTimeout(() => {
+          logger.warn('Forced shutdown after 10s timeout');
+          resolve();
+        }, 10000);
+        server.close(() => {
+          clearTimeout(forceTimer);
+          logger.info('HTTP server closed');
+          resolve();
+        });
+      });
+    }
     await mongoose.connection.close();
     logger.info('MongoDB connection closed');
   } catch (err) {
-    logger.error('Error closing MongoDB', { error: err.message });
+    logger.error('Error during graceful shutdown', { error: err.message });
   }
   process.exit(0);
 }

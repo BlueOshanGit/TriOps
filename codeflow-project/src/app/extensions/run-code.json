@@ -46,7 +46,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "triops_success",
+        "name": "hubhacks_success",
         "type": "bool"
       },
       "labels": {
@@ -57,7 +57,7 @@
     },
     {
       "typeDefinition": {
-        "name": "triops_error",
+        "name": "hubhacks_error",
         "type": "string"
       },
       "labels": {

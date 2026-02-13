@@ -16,9 +16,10 @@ router.use(requireAuth);
  */
 router.get('/', async (req, res) => {
   try {
-    const { days = 30 } = req.query;
+    const { days: rawDays = 30 } = req.query;
+    const days = Math.max(1, Math.min(parseInt(rawDays, 10) || 30, 365));
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days, 10));
+    startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
     // Get usage records
@@ -90,17 +91,19 @@ router.get('/resources', async (req, res) => {
     ]);
 
     const portal = req.portal;
+    const maxSnippets = portal.settings?.maxSnippets || 100;
+    const maxSecrets = portal.settings?.maxSecrets || 50;
 
     res.json({
       snippets: {
         current: snippetCount,
-        limit: portal.settings.maxSnippets,
-        percentUsed: Math.round((snippetCount / portal.settings.maxSnippets) * 100)
+        limit: maxSnippets,
+        percentUsed: maxSnippets > 0 ? Math.round((snippetCount / maxSnippets) * 100) : 0
       },
       secrets: {
         current: secretCount,
-        limit: portal.settings.maxSecrets,
-        percentUsed: Math.round((secretCount / portal.settings.maxSecrets) * 100)
+        limit: maxSecrets,
+        percentUsed: maxSecrets > 0 ? Math.round((secretCount / maxSecrets) * 100) : 0
       }
     });
   } catch (error) {
@@ -115,14 +118,15 @@ router.get('/resources', async (req, res) => {
  */
 router.get('/top-snippets', async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    const { limit: rawLimit = 10 } = req.query;
+    const limit = Math.max(1, Math.min(parseInt(rawLimit, 10) || 10, 100));
 
     const snippets = await Snippet.find({
       portalId: req.portalId,
       isActive: true
     })
       .sort('-executionCount')
-      .limit(parseInt(limit, 10))
+      .limit(limit)
       .select('name executionCount lastExecutedAt');
 
     res.json({ snippets });
@@ -133,14 +137,15 @@ router.get('/top-snippets', async (req, res) => {
 });
 
 /**
- * Get unique workflows using TriOps
+ * Get unique workflows using HubHacks
  * GET /api/usage/workflows
  */
 router.get('/workflows', async (req, res) => {
   try {
-    const { days = 30 } = req.query;
+    const { days: rawDays = 30 } = req.query;
+    const days = Math.max(1, Math.min(parseInt(rawDays, 10) || 30, 365));
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days, 10));
+    startDate.setDate(startDate.getDate() - days);
 
     const workflows = await Execution.aggregate([
       {
@@ -190,9 +195,10 @@ router.get('/workflows', async (req, res) => {
  */
 router.get('/hourly', async (req, res) => {
   try {
-    const { days = 7 } = req.query;
+    const { days: rawDays = 7 } = req.query;
+    const days = Math.max(1, Math.min(parseInt(rawDays, 10) || 7, 90));
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days, 10));
+    startDate.setDate(startDate.getDate() - days);
 
     const hourlyStats = await Execution.aggregate([
       {

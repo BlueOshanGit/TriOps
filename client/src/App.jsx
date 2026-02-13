@@ -8,7 +8,16 @@ import Secrets from './pages/Secrets'
 import Logs from './pages/Logs'
 import Usage from './pages/Usage'
 import Account from './pages/Account'
-import { getToken, setToken, api } from './api/client'
+import { getToken, setToken, api, onAuthChange } from './api/client'
+
+function NotFound() {
+  return (
+    <div className="text-center py-12">
+      <h1 className="text-2xl font-semibold text-hubspot-dark mb-2">Page Not Found</h1>
+      <p className="text-hubspot-gray">The page you are looking for does not exist.</p>
+    </div>
+  )
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -16,15 +25,21 @@ function App() {
   const [portal, setPortal] = useState(null)
 
   useEffect(() => {
+    // Listen for 401 auth failures from API client
+    const unsubscribe = onAuthChange(() => {
+      setIsAuthenticated(false)
+      setPortal(null)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     const initAuth = async () => {
       // Check for token in URL (from OAuth callback)
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('token')
 
-      console.log('App init - URL token:', urlToken ? 'present' : 'not present')
-
       if (urlToken) {
-        console.log('Setting token from URL')
         setToken(urlToken)
         // Remove token from URL
         window.history.replaceState({}, '', window.location.pathname)
@@ -38,17 +53,13 @@ function App() {
 
       // Verify existing token
       const token = getToken()
-      console.log('Stored token:', token ? 'present' : 'not present')
 
       if (token) {
         try {
-          console.log('Verifying token with /oauth/me...')
           const res = await api.get('/oauth/me')
-          console.log('Token verified successfully:', res.data)
           setPortal(res.data)
           setIsAuthenticated(true)
-        } catch (error) {
-          console.error('Token verification failed:', error)
+        } catch {
           setToken(null)
           setIsAuthenticated(false)
         }
@@ -65,7 +76,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-hubspot-light">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hubspot-orange mx-auto mb-4"></div>
-          <p className="text-hubspot-gray">Loading TriOps...</p>
+          <p className="text-hubspot-gray">Loading HubHacks...</p>
         </div>
       </div>
     )
@@ -86,6 +97,7 @@ function App() {
         <Route path="/logs" element={<Logs />} />
         <Route path="/usage" element={<Usage />} />
         <Route path="/account" element={<Account portal={portal} />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   )

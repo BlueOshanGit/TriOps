@@ -77,10 +77,14 @@ usageSchema.statics.recordExecution = async function(portalId, executionData) {
   const actionTypeField = executionData.actionType === 'webhook' ? 'webhookExecutions'
     : executionData.actionType === 'format' ? 'formatExecutions' : 'codeExecutions';
 
+  // Validate status to prevent arbitrary field creation
+  const allowedStatuses = ['success', 'error', 'timeout'];
+  const status = allowedStatuses.includes(executionData.status) ? executionData.status : 'error';
+
   const update = {
     $inc: {
       [actionTypeField]: 1,
-      [`${executionData.status}Count`]: 1,
+      [`${status}Count`]: 1,
       totalExecutionTimeMs: executionData.executionTimeMs || 0
     },
     $max: {
@@ -93,19 +97,33 @@ usageSchema.statics.recordExecution = async function(portalId, executionData) {
     update.$addToSet.workflowIds = executionData.workflowId;
   }
 
+  // Use aggregation pipeline update to compute derived fields atomically in a single operation.
+  // This prevents race conditions where concurrent requests read stale counters.
   const usage = await this.findOneAndUpdate(
     { portalId, date: today },
-    update,
+    [
+      { $set: update.$inc ? Object.fromEntries(
+        Object.entries(update.$inc).map(([k, v]) => [k, { $add: [{ $ifNull: [`$${k}`, 0] }, v] }])
+      ) : {} },
+      { $set: {
+        maxExecutionTimeMs: { $max: [{ $ifNull: ['$maxExecutionTimeMs', 0] }, executionData.executionTimeMs || 0] },
+        workflowIds: executionData.workflowId
+          ? { $setUnion: [{ $ifNull: ['$workflowIds', []] }, [executionData.workflowId]] }
+          : { $ifNull: ['$workflowIds', []] }
+      } },
+      { $set: {
+        avgExecutionTimeMs: {
+          $cond: {
+            if: { $gt: [{ $add: ['$webhookExecutions', '$codeExecutions', { $ifNull: ['$formatExecutions', 0] }] }, 0] },
+            then: { $round: [{ $divide: ['$totalExecutionTimeMs', { $add: ['$webhookExecutions', '$codeExecutions', { $ifNull: ['$formatExecutions', 0] }] }] }, 0] },
+            else: 0
+          }
+        },
+        uniqueWorkflows: { $size: { $ifNull: ['$workflowIds', []] } }
+      } }
+    ],
     { upsert: true, new: true }
   );
-
-  // Update average execution time
-  const totalExecutions = usage.webhookExecutions + usage.codeExecutions + (usage.formatExecutions || 0);
-  if (totalExecutions > 0) {
-    usage.avgExecutionTimeMs = Math.round(usage.totalExecutionTimeMs / totalExecutions);
-    usage.uniqueWorkflows = usage.workflowIds.length;
-    await usage.save();
-  }
 
   return usage;
 };

@@ -157,7 +157,7 @@
   "outputFields": [
     {
       "typeDefinition": {
-        "name": "triops_success",
+        "name": "hubhacks_success",
         "type": "bool"
       },
       "labels": {
@@ -168,7 +168,7 @@
     },
     {
       "typeDefinition": {
-        "name": "triops_status_code",
+        "name": "hubhacks_status_code",
         "type": "number"
       },
       "labels": {
@@ -179,7 +179,7 @@
     },
     {
       "typeDefinition": {
-        "name": "triops_error",
+        "name": "hubhacks_error",
         "type": "string"
       },
       "labels": {
@@ -190,7 +190,7 @@
     },
     {
       "typeDefinition": {
-        "name": "triops_retries_used",
+        "name": "hubhacks_retries_used",
         "type": "number"
       },
       "labels": {
@@ -205,13 +205,13 @@
     {
       "labelName": "Continue on success",
       "conditions": {
-        "triops_success": true
+        "hubhacks_success": true
       }
     },
     {
       "labelName": "Handle error",
       "conditions": {
-        "triops_success": false
+        "hubhacks_success": false
       }
     }
   ]

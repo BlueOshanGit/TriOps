@@ -52,8 +52,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'hubhacks_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'hubhacks_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'output1', type: 'string' }, labels: { en: { label: 'Output 1' } } },
       { typeDefinition: { name: 'output2', type: 'string' }, labels: { en: { label: 'Output 2' } } },
       { typeDefinition: { name: 'output3', type: 'string' }, labels: { en: { label: 'Output 3' } } }
@@ -107,9 +107,9 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'triops_status_code', type: 'number' }, labels: { en: { label: 'HTTP Status Code' } } },
-      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } }
+      { typeDefinition: { name: 'hubhacks_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'hubhacks_status_code', type: 'number' }, labels: { en: { label: 'HTTP Status Code' } } },
+      { typeDefinition: { name: 'hubhacks_error', type: 'string' }, labels: { en: { label: 'Error Message' } } }
     ]
   },
   {
@@ -191,8 +191,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'hubhacks_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'hubhacks_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formatted Result' } } },
       { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
     ]
@@ -234,8 +234,8 @@ const actions = [
       }
     ],
     outputFields: [
-      { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-      { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+      { typeDefinition: { name: 'hubhacks_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+      { typeDefinition: { name: 'hubhacks_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
       { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
       { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
     ]
@@ -286,7 +286,7 @@ async function listExistingActions() {
 
 async function main() {
   console.log('===========================================');
-  console.log('  TriOps - Workflow Actions Setup');
+  console.log('  HubHacks - Workflow Actions Setup');
   console.log('===========================================\n');
 
   // Validate environment
@@ -333,7 +333,7 @@ async function main() {
   console.log('\nNext steps:');
   console.log('1. Go to your HubSpot workflow');
   console.log('2. Add a new action');
-  console.log('3. Look for "Send Webhook", "Format Data", "Format Data: Custom Mode", or "Run Code" under TriOps');
+  console.log('3. Look for "Send Webhook", "Format Data", "Format Data: Custom Mode", or "Run Code" under HubHacks');
   console.log('4. Configure with your snippet ID, webhook URL, or formula\n');
 }
 

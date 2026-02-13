@@ -1,7 +1,7 @@
 {
-  "name": "hubspot-triops",
+  "name": "hubspot-hubhacks",
   "version": "1.0.0",
-  "description": "TriOps - HubSpot marketplace app for webhook and custom code execution in workflows",
+  "description": "HubHacks - HubSpot marketplace app for webhook and custom code execution in workflows",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

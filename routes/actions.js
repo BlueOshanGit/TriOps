@@ -11,6 +11,21 @@ const Execution = require('../models/Execution');
 const Usage = require('../models/Usage');
 const logger = require('../utils/logger');
 
+/**
+ * Sanitize error messages before returning to external callers.
+ * Strips internal details like file paths, connection strings, and stack traces.
+ */
+function sanitizeErrorMessage(message) {
+  if (!message || typeof message !== 'string') return 'An internal error occurred';
+  // Strip file paths (Unix and Windows)
+  let safe = message.replace(/\/[^\s:]+\.[jt]s[x]?/g, '[path]');
+  safe = safe.replace(/[A-Z]:\\[^\s:]+\.[jt]s[x]?/gi, '[path]');
+  // Strip MongoDB connection strings
+  safe = safe.replace(/mongodb(\+srv)?:\/\/[^\s]+/gi, '[connection]');
+  // Truncate to reasonable length
+  return safe.slice(0, 500);
+}
+
 // Length limits to prevent resource abuse
 const MAX_FORMULA_LENGTH = 5000;   // Max characters for custom mode formulas
 const MAX_INLINE_CODE_LENGTH = 50000; // Max characters for inline code (~50KB)
@@ -143,13 +158,7 @@ function processFormulaFunctions(formula) {
       return isNaN(n) ? num : String(Math.abs(n));
     });
 
-    // Simple math operations: number + number, number - number, etc.
-    result = result.replace(/(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
-      return String(parseFloat(a) + parseFloat(b));
-    });
-    result = result.replace(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
-      return String(parseFloat(a) - parseFloat(b));
-    });
+    // Math operations — correct precedence: multiplication/division FIRST, then addition/subtraction
     result = result.replace(/(\d+(?:\.\d+)?)\s*\*\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
       return String(parseFloat(a) * parseFloat(b));
     });
@@ -157,6 +166,12 @@ function processFormulaFunctions(formula) {
       const divisor = parseFloat(b);
       if (divisor === 0) return 'ERROR:DIV/0';
       return String(parseFloat(a) / divisor);
+    });
+    result = result.replace(/(?<![.\w-])(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      return String(parseFloat(a) + parseFloat(b));
+    });
+    result = result.replace(/(?<![.\w])(\d+(?:\.\d+)?)\s+-\s+(\d+(?:\.\d+)?)/g, (match, a, b) => {
+      return String(parseFloat(a) - parseFloat(b));
     });
 
     // If no changes were made, we're done
@@ -223,7 +238,7 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
   if (!webhookUrl) {
     return res.status(400).json({
       outputFields: {
-        triops_error: 'Missing webhook URL'
+        hubhacks_error: 'Missing webhook URL'
       }
     });
   }
@@ -294,11 +309,11 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
     }
 
     // Add status fields
-    outputFields.triops_success = result.success;
-    outputFields.triops_status_code = result.httpStatusCode;
-    outputFields.triops_retries_used = result.retriesUsed || 0;
+    outputFields.hubhacks_success = result.success;
+    outputFields.hubhacks_status_code = result.httpStatusCode;
+    outputFields.hubhacks_retries_used = result.retriesUsed || 0;
     if (!result.success) {
-      outputFields.triops_error = result.errorMessage;
+      outputFields.hubhacks_error = result.errorMessage;
     }
 
     // Log execution
@@ -355,8 +370,8 @@ router.post('/webhook', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        triops_success: false,
-        triops_error: error.message
+        hubhacks_success: false,
+        hubhacks_error: sanitizeErrorMessage(error.message)
       }
     });
   }
@@ -396,8 +411,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       if (!snippetDoc) {
         return res.json({
           outputFields: {
-            triops_success: false,
-            triops_error: 'Snippet not found'
+            hubhacks_success: false,
+            hubhacks_error: 'Snippet not found'
           }
         });
       }
@@ -406,8 +421,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
       if (String(inlineCode).length > MAX_INLINE_CODE_LENGTH) {
         return res.json({
           outputFields: {
-            triops_success: false,
-            triops_error: `Inline code too long (${String(inlineCode).length} chars). Maximum is ${MAX_INLINE_CODE_LENGTH} characters.`
+            hubhacks_success: false,
+            hubhacks_error: `Inline code too long (${String(inlineCode).length} chars). Maximum is ${MAX_INLINE_CODE_LENGTH} characters.`
           }
         });
       }
@@ -415,8 +430,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
     } else {
       return res.json({
         outputFields: {
-          triops_success: false,
-          triops_error: 'No code provided (specify snippetId or inlineCode)'
+          hubhacks_success: false,
+          hubhacks_error: 'No code provided (specify snippetId or inlineCode)'
         }
       });
     }
@@ -424,6 +439,7 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
     // Load secrets for this portal — only decrypt those referenced in the code
     const secretDocs = await Secret.find({ portalId });
     const secrets = {};
+    const secretUpdateIds = [];
     for (const secret of secretDocs) {
       const isReferenced = code.includes(`secrets.${secret.name}`) ||
         code.includes(`secrets['${secret.name}']`) ||
@@ -436,13 +452,19 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
           secret.iv,
           secret.authTag
         );
-        secret.lastUsedAt = new Date();
-        secret.usageCount += 1;
-        await secret.save();
+        secretUpdateIds.push(secret._id);
       } catch (decryptError) {
         logger.error(`Failed to decrypt secret ${secret.name}`, { error: decryptError.message });
         secrets[secret.name] = null;
       }
+    }
+
+    // Atomic bulk update for secret usage tracking (prevents race conditions)
+    if (secretUpdateIds.length > 0) {
+      Secret.updateMany(
+        { _id: { $in: secretUpdateIds } },
+        { $inc: { usageCount: 1 }, $set: { lastUsedAt: new Date() } }
+      ).catch(err => logger.error('Failed to update secret usage', { error: err.message }));
     }
 
     // Build context
@@ -464,12 +486,12 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
 
     // Build output fields from result
     const outputFields = {
-      triops_success: result.success,
+      hubhacks_success: result.success,
       ...(result.output || {})
     };
 
     if (!result.success) {
-      outputFields.triops_error = result.errorMessage;
+      outputFields.hubhacks_error = result.errorMessage;
     }
 
     // Log execution
@@ -525,8 +547,8 @@ router.post('/code', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        triops_success: false,
-        triops_error: error.message
+        hubhacks_success: false,
+        hubhacks_error: sanitizeErrorMessage(error.message)
       }
     });
   }
@@ -561,8 +583,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
     if (!formula) {
       return res.json({
         outputFields: {
-          triops_success: false,
-          triops_error: 'No formula specified in custom mode'
+          hubhacks_success: false,
+          hubhacks_error: 'No formula specified in custom mode'
         }
       });
     }
@@ -570,8 +592,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
     if (String(formula).length > MAX_FORMULA_LENGTH) {
       return res.json({
         outputFields: {
-          triops_success: false,
-          triops_error: `Formula too long (${String(formula).length} chars). Maximum is ${MAX_FORMULA_LENGTH} characters.`
+          hubhacks_success: false,
+          hubhacks_error: `Formula too long (${String(formula).length} chars). Maximum is ${MAX_FORMULA_LENGTH} characters.`
         }
       });
     }
@@ -604,7 +626,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
       return res.json({
         outputFields: {
-          triops_success: true,
+          hubhacks_success: true,
           result: String(result),
           result_number: resultNumber
         }
@@ -625,8 +647,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
       return res.json({
         outputFields: {
-          triops_success: false,
-          triops_error: `Formula error: ${formulaError.message}`
+          hubhacks_success: false,
+          hubhacks_error: `Formula error: ${formulaError.message}`
         }
       });
     }
@@ -635,8 +657,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
   if (!operation) {
     return res.json({
       outputFields: {
-        triops_success: false,
-        triops_error: 'No operation specified'
+        hubhacks_success: false,
+        hubhacks_error: 'No operation specified'
       }
     });
   }
@@ -646,8 +668,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
     if (val && String(val).length > MAX_INPUT_LENGTH) {
       return res.json({
         outputFields: {
-          triops_success: false,
-          triops_error: `${label} too long (${String(val).length} chars). Maximum is ${MAX_INPUT_LENGTH} characters.`
+          hubhacks_success: false,
+          hubhacks_error: `${label} too long (${String(val).length} chars). Maximum is ${MAX_INPUT_LENGTH} characters.`
         }
       });
     }
@@ -819,8 +841,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
         if (isNaN(num2) || num2 === 0) {
           return res.json({
             outputFields: {
-              triops_success: false,
-              triops_error: 'Cannot divide by zero or invalid divisor'
+              hubhacks_success: false,
+              hubhacks_error: 'Cannot divide by zero or invalid divisor'
             }
           });
         }
@@ -875,7 +897,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
           resultNumber = 0;
         } else {
           const diffTime = Math.abs(date2 - date1);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           resultNumber = diffDays;
           result = diffDays.toString();
         }
@@ -942,8 +964,8 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
       default:
         return res.json({
           outputFields: {
-            triops_success: false,
-            triops_error: `Unknown operation: ${operation}`
+            hubhacks_success: false,
+            hubhacks_error: `Unknown operation: ${operation}`
           }
         });
     }
@@ -972,7 +994,7 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        triops_success: true,
+        hubhacks_success: true,
         result: result,
         result_number: resultNumber
       }
@@ -995,20 +1017,21 @@ router.post('/format', verifyWorkflowActionSignature, async (req, res) => {
 
     res.json({
       outputFields: {
-        triops_success: false,
-        triops_error: error.message
+        hubhacks_success: false,
+        hubhacks_error: sanitizeErrorMessage(error.message)
       }
     });
   }
 });
 
 // Helper function to format dates
-// Uses split/join instead of RegExp to avoid ReDoS, ordered longest-first
+// Uses placeholder-based replacement to prevent token collision:
+// 1. Replace all tokens with unique placeholders (longest first)
+// 2. Replace all placeholders with actual values
 function formatDate(date, format) {
   const pad = (n, len = 2) => String(n).padStart(len, '0');
 
-  // Ordered: double-letter tokens first, then single-letter tokens
-  // This prevents shorter tokens (M) from matching inside longer ones (MM)
+  // Ordered: longest tokens first to prevent partial matches
   const tokens = [
     ['YYYY', String(date.getFullYear())],
     ['YY', String(date.getFullYear()).slice(-2)],
@@ -1028,12 +1051,24 @@ function formatDate(date, format) {
     ['a', date.getHours() >= 12 ? 'pm' : 'am']
   ];
 
+  // Phase 1: Replace tokens with unique placeholders
   let result = format;
-  for (const [token, value] of tokens) {
-    result = result.split(token).join(value);
+  const placeholders = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const placeholder = `\x00${i}\x00`;
+    placeholders.push([placeholder, tokens[i][1]]);
+    result = result.split(tokens[i][0]).join(placeholder);
+  }
+
+  // Phase 2: Replace placeholders with actual values (no collision possible)
+  for (const [placeholder, value] of placeholders) {
+    result = result.split(placeholder).join(value);
   }
   return result;
 }
+
+// Keys that must never be traversed to prevent prototype chain access
+const BLOCKED_PATH_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 // Helper function to get nested value from object
 function getNestedValue(obj, path) {
@@ -1045,13 +1080,17 @@ function getNestedValue(obj, path) {
     // Handle array index
     const arrayMatch = key.match(/^(\w+)\[(\d+)\]$/);
     if (arrayMatch) {
-      value = value[arrayMatch[1]];
+      const propName = arrayMatch[1];
+      if (BLOCKED_PATH_KEYS.has(propName)) return '';
+      value = value[propName];
       if (Array.isArray(value)) {
         value = value[parseInt(arrayMatch[2], 10)];
       } else {
         return '';
       }
     } else {
+      if (BLOCKED_PATH_KEYS.has(key)) return '';
+      if (!Object.prototype.hasOwnProperty.call(value, key)) return '';
       value = value[key];
     }
   }
@@ -1059,13 +1098,16 @@ function getNestedValue(obj, path) {
 }
 
 /**
- * Test endpoint for debugging
+ * Test endpoint for debugging (development only)
  * POST /v1/actions/test
  */
 router.post('/test', async (req, res) => {
+  if (process.env.NODE_ENV !== 'development') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.json({
     success: true,
-    message: 'TriOps actions endpoint is working',
+    message: 'HubHacks actions endpoint is working',
     timestamp: new Date().toISOString()
   });
 });
@@ -1083,9 +1125,10 @@ router.post('/simple-code', async (req, res) => {
     code,
     inlineCode,
     inputs = {},
-    timeout = 10000
+    timeout: rawTimeout = 10000
   } = req.body;
 
+  const timeout = Math.max(1000, Math.min(parseInt(rawTimeout, 10) || 10000, 30000));
   const codeToExecute = code || inlineCode;
 
   if (!codeToExecute) {

@@ -4,24 +4,32 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "Format Data: Custom Mode",
-      "actionDescription": "Transform data with custom formulas using built-in functions and math",
-      "actionCardContent": "Custom formula"
+      "actionName": "Format Text",
+      "actionDescription": "Convert text to uppercase, lowercase, capitalize, trim whitespace, or get length",
+      "actionCardContent": "Format Text: {{operation}}"
     }
   },
   "inputFields": [
     {
       "typeDefinition": {
-        "name": "formula",
-        "type": "string",
-        "fieldType": "textarea"
+        "name": "operation",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "uppercase", "label": "UPPERCASE" },
+          { "value": "lowercase", "label": "lowercase" },
+          { "value": "capitalize", "label": "Capitalize Each Word" },
+          { "value": "trim", "label": "Trim Whitespace" },
+          { "value": "trimwhitespace", "label": "Trim All Whitespace" },
+          { "value": "length", "label": "Get Length" }
+        ]
       },
       "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": true,
       "labels": {
         "en": {
-          "label": "Formula",
-          "description": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more"
+          "label": "Operation",
+          "description": "The text formatting operation to perform"
         }
       }
     },
@@ -32,41 +40,11 @@
         "fieldType": "text"
       },
       "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
+      "isRequired": true,
       "labels": {
         "en": {
-          "label": "Property 1",
-          "description": "Select a property to use in your formula"
-        }
-      }
-    },
-    {
-      "typeDefinition": {
-        "name": "input2",
-        "type": "string",
-        "fieldType": "text"
-      },
-      "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
-      "labels": {
-        "en": {
-          "label": "Property 2",
-          "description": "Select a property to use in your formula"
-        }
-      }
-    },
-    {
-      "typeDefinition": {
-        "name": "input3",
-        "type": "string",
-        "fieldType": "text"
-      },
-      "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
-      "labels": {
-        "en": {
-          "label": "Property 3",
-          "description": "Select a property to use in your formula"
+          "label": "Text to Format",
+          "description": "The text value to format"
         }
       }
     }
@@ -101,7 +79,7 @@
       },
       "labels": {
         "en": {
-          "label": "Formula Result"
+          "label": "Formatted Result"
         }
       }
     },

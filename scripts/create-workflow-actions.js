@@ -75,7 +75,7 @@ async function createWorkflowActions() {
       outputFields: [
         {
           typeDefinition: {
-            name: 'triops_success',
+            name: 'hubhacks_success',
             type: 'bool'
           },
           labels: {
@@ -84,7 +84,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'triops_status_code',
+            name: 'hubhacks_status_code',
             type: 'number'
           },
           labels: {
@@ -93,7 +93,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'triops_error',
+            name: 'hubhacks_error',
             type: 'string'
           },
           labels: {
@@ -148,7 +148,7 @@ async function createWorkflowActions() {
       outputFields: [
         {
           typeDefinition: {
-            name: 'triops_success',
+            name: 'hubhacks_success',
             type: 'bool'
           },
           labels: {
@@ -157,7 +157,7 @@ async function createWorkflowActions() {
         },
         {
           typeDefinition: {
-            name: 'triops_error',
+            name: 'hubhacks_error',
             type: 'string'
           },
           labels: {
@@ -209,8 +209,8 @@ async function createWorkflowActions() {
         }
       ],
       outputFields: [
-        { typeDefinition: { name: 'triops_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
-        { typeDefinition: { name: 'triops_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
+        { typeDefinition: { name: 'hubhacks_success', type: 'bool' }, labels: { en: { label: 'Success' } } },
+        { typeDefinition: { name: 'hubhacks_error', type: 'string' }, labels: { en: { label: 'Error Message' } } },
         { typeDefinition: { name: 'result', type: 'string' }, labels: { en: { label: 'Formula Result' } } },
         { typeDefinition: { name: 'result_number', type: 'number' }, labels: { en: { label: 'Result (Number)' } } }
       ]

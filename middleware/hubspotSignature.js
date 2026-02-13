@@ -3,13 +3,23 @@ const { URL } = require('url');
 const logger = require('../utils/logger');
 
 /**
+ * Timing-safe comparison of two strings
+ * Prevents timing attacks on signature verification
+ */
+function timingSafeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/**
  * Verify HubSpot webhook signature (v1)
  * Used for older integrations
  */
 function verifySignatureV1(signature, clientSecret, requestBody) {
   const sourceString = clientSecret + requestBody;
   const hash = crypto.createHash('sha256').update(sourceString).digest('hex');
-  return hash === signature;
+  return timingSafeCompare(hash, signature);
 }
 
 /**
@@ -19,7 +29,7 @@ function verifySignatureV1(signature, clientSecret, requestBody) {
 function verifySignatureV2(signature, clientSecret, method, uri, requestBody) {
   const sourceString = clientSecret + method + uri + requestBody;
   const hash = crypto.createHash('sha256').update(sourceString).digest('hex');
-  return hash === signature;
+  return timingSafeCompare(hash, signature);
 }
 
 /**
@@ -41,7 +51,8 @@ function verifySignatureV3(signature, clientSecret, method, uri, requestBody, ti
     .update(sourceString)
     .digest('base64');
 
-  return { valid: hash === signature, reason: hash === signature ? null : 'Signature mismatch' };
+  const valid = timingSafeCompare(hash, signature);
+  return { valid, reason: valid ? null : 'Signature mismatch' };
 }
 
 /**
@@ -160,7 +171,11 @@ function verifyWorkflowActionSignature(req, res, next) {
 
   // Development only: strict origin validation as fallback
   const origin = req.headers.origin || req.headers.referer;
-  if (origin && !isValidHubSpotOrigin(origin)) {
+  if (!origin) {
+    logger.warn('Missing origin header in development — rejecting unsigned request');
+    return res.status(403).json({ error: 'Missing origin header for unsigned request' });
+  }
+  if (!isValidHubSpotOrigin(origin)) {
     return res.status(403).json({ error: 'Invalid request origin' });
   }
 
@@ -176,8 +191,9 @@ function verifyWorkflowActionSignature(req, res, next) {
 function isValidHubSpotOrigin(origin) {
   try {
     const url = new URL(origin);
+    if (url.protocol !== 'https:') return false;
     return url.hostname === 'app.hubspot.com' ||
-           (url.hostname.endsWith('.hubspot.com') && url.protocol === 'https:');
+           url.hostname.endsWith('.hubspot.com');
   } catch {
     return false;
   }

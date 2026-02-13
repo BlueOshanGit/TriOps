@@ -4,24 +4,37 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "Format Data: Custom Mode",
-      "actionDescription": "Transform data with custom formulas using built-in functions and math",
-      "actionCardContent": "Custom formula"
+      "actionName": "Number & Math",
+      "actionDescription": "Format numbers, perform math operations, round, and convert to currency or percentage",
+      "actionCardContent": "Number & Math: {{operation}}"
     }
   },
   "inputFields": [
     {
       "typeDefinition": {
-        "name": "formula",
-        "type": "string",
-        "fieldType": "textarea"
+        "name": "operation",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "number_format", "label": "Format with Decimals" },
+          { "value": "currency", "label": "Format as Currency" },
+          { "value": "percentage", "label": "Format as Percentage" },
+          { "value": "round", "label": "Round" },
+          { "value": "floor", "label": "Round Down" },
+          { "value": "ceil", "label": "Round Up" },
+          { "value": "abs", "label": "Absolute Value" },
+          { "value": "add", "label": "Add" },
+          { "value": "subtract", "label": "Subtract" },
+          { "value": "multiply", "label": "Multiply" },
+          { "value": "divide", "label": "Divide" }
+        ]
       },
       "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": true,
       "labels": {
         "en": {
-          "label": "Formula",
-          "description": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more"
+          "label": "Operation",
+          "description": "The number or math operation to perform"
         }
       }
     },
@@ -32,11 +45,11 @@
         "fieldType": "text"
       },
       "supportedValueTypes": ["OBJECT_PROPERTY"],
-      "isRequired": false,
+      "isRequired": true,
       "labels": {
         "en": {
-          "label": "Property 1",
-          "description": "Select a property to use in your formula"
+          "label": "Number",
+          "description": "The primary number value"
         }
       }
     },
@@ -50,8 +63,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 2",
-          "description": "Select a property to use in your formula"
+          "label": "Second Number / Parameter",
+          "description": "Second operand for math, decimal places for formatting, or currency code (e.g. USD)"
         }
       }
     },
@@ -65,8 +78,23 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 3",
-          "description": "Select a property to use in your formula"
+          "label": "Locale",
+          "description": "Locale for currency formatting (e.g. en-US, de-DE). Defaults to en-US."
+        }
+      }
+    },
+    {
+      "typeDefinition": {
+        "name": "formatOptions",
+        "type": "string",
+        "fieldType": "text"
+      },
+      "supportedValueTypes": ["STATIC_VALUE"],
+      "isRequired": false,
+      "labels": {
+        "en": {
+          "label": "Format Options",
+          "description": "Decimal places (e.g. 2) or currency code (e.g. USD)"
         }
       }
     }
@@ -101,7 +129,7 @@
       },
       "labels": {
         "en": {
-          "label": "Formula Result"
+          "label": "Formatted Result"
         }
       }
     },

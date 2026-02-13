@@ -5,6 +5,9 @@ const logger = require('../utils/logger');
 
 const HUBSPOT_OAUTH_URL = 'https://api.hubapi.com/oauth/v1/token';
 
+// In-memory lock to prevent concurrent token refresh for the same portal
+const refreshLocks = new Map();
+
 /**
  * Get OAuth authorization URL
  * @param {string} state - State parameter for CSRF protection
@@ -68,18 +71,23 @@ async function exchangeCodeForTokens(code) {
  * @returns {Object} - New token response
  */
 async function refreshAccessToken(refreshToken) {
-  const response = await axios.post(HUBSPOT_OAUTH_URL, new URLSearchParams({
-    grant_type: 'refresh_token',
-    client_id: process.env.HUBSPOT_CLIENT_ID,
-    client_secret: process.env.HUBSPOT_CLIENT_SECRET,
-    refresh_token: refreshToken
-  }), {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  });
+  try {
+    const response = await axios.post(HUBSPOT_OAUTH_URL, new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: process.env.HUBSPOT_CLIENT_ID,
+      client_secret: process.env.HUBSPOT_CLIENT_SECRET,
+      refresh_token: refreshToken
+    }), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    logger.error('Token refresh failed', { error: error.response?.data || error.message });
+    throw new Error('Failed to refresh HubSpot access token');
+  }
 }
 
 /**
@@ -88,8 +96,13 @@ async function refreshAccessToken(refreshToken) {
  * @returns {Object} - Token info
  */
 async function getTokenInfo(accessToken) {
-  const response = await axios.get(`https://api.hubapi.com/oauth/v1/access-tokens/${accessToken}`);
-  return response.data;
+  try {
+    const response = await axios.get(`https://api.hubapi.com/oauth/v1/access-tokens/${accessToken}`);
+    return response.data;
+  } catch (error) {
+    logger.error('Failed to get token info', { error: error.response?.data || error.message });
+    throw new Error('Failed to get HubSpot token info');
+  }
 }
 
 /**
@@ -106,22 +119,36 @@ async function getValidAccessToken(portalId) {
 
   // Check if token needs refresh
   if (portal.isTokenExpiringSoon()) {
-    try {
-      const tokenData = await refreshAccessToken(portal.refreshToken);
-
-      portal.accessToken = tokenData.access_token;
-      portal.refreshToken = tokenData.refresh_token;
-      portal.tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
-      await portal.save();
-
-      logger.info(`Refreshed token for portal ${portalId}`);
-    } catch (error) {
-      logger.error(`Failed to refresh token for portal ${portalId}`, { error: error.message });
-      throw new Error('Failed to refresh HubSpot token');
+    // Use a lock to prevent concurrent refresh of the same portal's token
+    if (refreshLocks.has(portalId)) {
+      await refreshLocks.get(portalId);
+      // Re-fetch portal after waiting — another request already refreshed the token
+      const updated = await Portal.findOne({ portalId });
+      return updated.getAccessToken();
     }
+
+    const refreshPromise = (async () => {
+      try {
+        const tokenData = await refreshAccessToken(portal.getRefreshToken());
+
+        portal.setTokens(tokenData.access_token, tokenData.refresh_token);
+        portal.tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+        await portal.save();
+
+        logger.info(`Refreshed token for portal ${portalId}`);
+      } catch (error) {
+        logger.error(`Failed to refresh token for portal ${portalId}`, { error: error.message });
+        throw new Error('Failed to refresh HubSpot token');
+      } finally {
+        refreshLocks.delete(portalId);
+      }
+    })();
+
+    refreshLocks.set(portalId, refreshPromise);
+    await refreshPromise;
   }
 
-  return portal.accessToken;
+  return portal.getAccessToken();
 }
 
 /**

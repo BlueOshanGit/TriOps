@@ -23,7 +23,7 @@ function Account({ portal }) {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-hubspot-dark">Account</h1>
-        <p className="text-hubspot-gray mt-1">Manage your TriOps connection</p>
+        <p className="text-hubspot-gray mt-1">Manage your HubHacks connection</p>
       </div>
 
       <div className="max-w-2xl space-y-6">
@@ -66,7 +66,7 @@ function Account({ portal }) {
         <Card>
           <CardHeader>
             <CardTitle>Settings</CardTitle>
-            <CardDescription>Configure your TriOps settings</CardDescription>
+            <CardDescription>Configure your HubHacks settings</CardDescription>
           </CardHeader>
 
           <div className="space-y-4">
@@ -113,7 +113,7 @@ function Account({ portal }) {
         <Card>
           <CardHeader>
             <CardTitle>Documentation</CardTitle>
-            <CardDescription>Learn how to use TriOps in your workflows</CardDescription>
+            <CardDescription>Learn how to use HubHacks in your workflows</CardDescription>
           </CardHeader>
 
           <div className="space-y-4">

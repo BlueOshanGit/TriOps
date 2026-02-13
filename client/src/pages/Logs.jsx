@@ -17,19 +17,47 @@ function Logs() {
   })
 
   useEffect(() => {
+    let cancelled = false
+
+    const loadLogs = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const params = {}
+        if (filters.actionType) params.actionType = filters.actionType
+        if (filters.status) params.status = filters.status
+        params.limit = filters.limit
+
+        const { data } = await logsApi.list(params)
+        if (!cancelled) {
+          setLogs(data.logs || [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
     loadLogs()
+    return () => { cancelled = true }
   }, [filters])
 
   const loadLogs = async () => {
     try {
       setLoading(true)
+      setError(null)
       const params = {}
       if (filters.actionType) params.actionType = filters.actionType
       if (filters.status) params.status = filters.status
       params.limit = filters.limit
 
       const { data } = await logsApi.list(params)
-      setLogs(data.logs)
+      setLogs(data.logs || [])
     } catch (err) {
       setError(err.message)
     } finally {

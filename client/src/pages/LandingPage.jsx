@@ -189,9 +189,9 @@ return {
           <div className="flex justify-between items-center h-16">
             <a href="#" className="flex items-center space-x-2 group">
               <div className="w-10 h-10 bg-gradient-to-br from-hubspot-orange to-red-500 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <span className="text-white font-bold text-lg">T</span>
+                <span className="text-white font-bold text-lg">H</span>
               </div>
-              <span className="text-xl font-semibold text-hubspot-dark transition-colors duration-300 group-hover:text-hubspot-orange">TriOps</span>
+              <span className="text-xl font-semibold text-hubspot-dark transition-colors duration-300 group-hover:text-hubspot-orange">HubHacks</span>
             </a>
             <div className="hidden md:flex items-center space-x-8">
               <a
@@ -360,12 +360,12 @@ return {
               {
                 step: '01',
                 title: 'Install the App',
-                description: 'Click "Install on HubSpot" and authorize TriOps to access your HubSpot account.'
+                description: 'Click "Install on HubSpot" and authorize HubHacks to access your HubSpot account.'
               },
               {
                 step: '02',
                 title: 'Add to Workflow',
-                description: 'Open any workflow and find "TriOps" actions in the action panel. Choose Send Webhook or Run Code.'
+                description: 'Open any workflow and find "HubHacks" actions in the action panel. Choose Send Webhook or Run Code.'
               },
               {
                 step: '03',
@@ -442,7 +442,7 @@ return {
               Popular Use Cases
             </h2>
             <p className="text-xl text-hubspot-gray max-w-2xl mx-auto">
-              See how teams are using TriOps to automate their workflows
+              See how teams are using HubHacks to automate their workflows
             </p>
           </div>
 
@@ -478,13 +478,13 @@ return {
                 Ready to Supercharge Your Workflows?
               </h2>
               <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                Join hundreds of HubSpot users who have extended their workflow capabilities with TriOps.
+                Join hundreds of HubSpot users who have extended their workflow capabilities with HubHacks.
               </p>
               <a
                 href={installUrl}
                 className="inline-flex items-center bg-white text-hubspot-orange font-semibold py-4 px-10 rounded-xl hover:shadow-2xl transition-all text-lg group"
               >
-                Install TriOps Now
+                Install HubHacks Now
                 <ArrowRightIcon />
               </a>
               <p className="text-white/70 mt-6 text-sm">
@@ -502,9 +502,9 @@ return {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-hubspot-orange to-red-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">T</span>
+                  <span className="text-white font-bold text-lg">H</span>
                 </div>
-                <span className="text-xl font-semibold">TriOps</span>
+                <span className="text-xl font-semibold">HubHacks</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 The most powerful workflow extension for HubSpot. Send webhooks and run custom code without leaving your CRM.
@@ -529,7 +529,7 @@ return {
           </div>
           <div className="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} TriOps. Built for HubSpot users.
+              © {new Date().getFullYear()} HubHacks. Built for HubSpot users.
             </p>
             <p className="text-gray-400 text-sm mt-4 md:mt-0">
               Not affiliated with HubSpot, Inc.

@@ -97,6 +97,24 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name and code are required' });
     }
 
+    // Validate code size limit
+    if (String(code).length > 50000) {
+      return res.status(400).json({ error: 'Code must be 50,000 characters or less' });
+    }
+
+    // Validate name length
+    if (String(name).length > 200) {
+      return res.status(400).json({ error: 'Snippet name must be 200 characters or less' });
+    }
+
+    // Validate inputs/outputs arrays
+    if (inputs && (!Array.isArray(inputs) || inputs.length > 20)) {
+      return res.status(400).json({ error: 'Inputs must be an array with 20 or fewer items' });
+    }
+    if (outputs && (!Array.isArray(outputs) || outputs.length > 20)) {
+      return res.status(400).json({ error: 'Outputs must be an array with 20 or fewer items' });
+    }
+
     // Check snippet limit
     const portal = req.portal;
     const maxSnippets = portal.settings?.maxSnippets || 100;
@@ -111,23 +129,23 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check for duplicate name
+    // Check for duplicate name (only among active snippets)
     const existing = await Snippet.findOne({
       portalId: req.portalId,
-      name: name.trim()
+      name: name.trim(),
+      isActive: true
     });
 
     if (existing) {
       return res.status(400).json({ error: 'A snippet with this name already exists' });
     }
 
-    // Validate code syntax (basic check)
-    try {
-      new Function(code);
-    } catch (syntaxError) {
+    // Validate code syntax
+    const validation = validateCode(code);
+    if (!validation.valid) {
       return res.status(400).json({
         error: 'Invalid JavaScript syntax',
-        details: syntaxError.message
+        details: validation.error
       });
     }
 
@@ -170,8 +188,11 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Snippet not found' });
     }
 
-    // If updating code, validate syntax
+    // If updating code, validate size and syntax
     if (code !== undefined) {
+      if (String(code).length > 50000) {
+        return res.status(400).json({ error: 'Code must be 50,000 characters or less' });
+      }
       const validation = validateCode(code);
       if (!validation.valid) {
         return res.status(400).json({
@@ -182,6 +203,14 @@ router.put('/:id', async (req, res) => {
       }
       snippet.code = code;
       snippet.version += 1;
+    }
+
+    // Validate inputs/outputs if provided
+    if (inputs !== undefined && (!Array.isArray(inputs) || inputs.length > 20)) {
+      return res.status(400).json({ error: 'Inputs must be an array with 20 or fewer items' });
+    }
+    if (outputs !== undefined && (!Array.isArray(outputs) || outputs.length > 20)) {
+      return res.status(400).json({ error: 'Outputs must be an array with 20 or fewer items' });
     }
 
     // Check for name conflicts if renaming
@@ -265,22 +294,25 @@ router.post('/:id/test', async (req, res) => {
     const { decrypt } = require('../services/encryption');
     const Secret = require('../models/Secret');
 
-    // Load secrets
+    // Load secrets — only decrypt those referenced in the code (same as production path)
     const secretDocs = await Secret.find({ portalId: req.portalId });
     const secrets = {};
     const failedSecrets = [];
     for (const secret of secretDocs) {
+      const isReferenced = snippet.code.includes(`secrets.${secret.name}`) ||
+        snippet.code.includes(`secrets['${secret.name}']`) ||
+        snippet.code.includes(`secrets["${secret.name}"]`);
+      if (!isReferenced) continue;
+
       try {
         secrets[secret.name] = decrypt(secret.encryptedValue, secret.iv, secret.authTag);
       } catch (decryptError) {
         logger.error(`Failed to decrypt secret ${secret.name}`, { error: decryptError.message });
         failedSecrets.push(secret.name);
-        // Set to null so code can detect the secret exists but failed to decrypt
         secrets[secret.name] = null;
       }
     }
 
-    // Log warning if any secrets failed to decrypt
     if (failedSecrets.length > 0) {
       logger.warn(`[Portal ${req.portalId}] ${failedSecrets.length} secret(s) failed to decrypt during test: ${failedSecrets.join(', ')}`);
     }

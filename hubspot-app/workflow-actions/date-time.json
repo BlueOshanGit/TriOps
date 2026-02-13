@@ -4,24 +4,31 @@
   "published": true,
   "labels": {
     "en": {
-      "actionName": "Format Data: Custom Mode",
-      "actionDescription": "Transform data with custom formulas using built-in functions and math",
-      "actionCardContent": "Custom formula"
+      "actionName": "Date & Time",
+      "actionDescription": "Format dates, add or subtract days, calculate days between dates, or get current date/time",
+      "actionCardContent": "Date & Time: {{operation}}"
     }
   },
   "inputFields": [
     {
       "typeDefinition": {
-        "name": "formula",
-        "type": "string",
-        "fieldType": "textarea"
+        "name": "operation",
+        "type": "enumeration",
+        "fieldType": "select",
+        "options": [
+          { "value": "date_format", "label": "Format Date" },
+          { "value": "date_add", "label": "Add Days" },
+          { "value": "date_subtract", "label": "Subtract Days" },
+          { "value": "date_diff", "label": "Days Between Dates" },
+          { "value": "now", "label": "Current Date/Time" }
+        ]
       },
       "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": true,
       "labels": {
         "en": {
-          "label": "Formula",
-          "description": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more"
+          "label": "Operation",
+          "description": "The date/time operation to perform"
         }
       }
     },
@@ -35,8 +42,8 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 1",
-          "description": "Select a property to use in your formula"
+          "label": "Date",
+          "description": "The date value (not required for Current Date/Time)"
         }
       }
     },
@@ -50,23 +57,23 @@
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 2",
-          "description": "Select a property to use in your formula"
+          "label": "Days / Second Date",
+          "description": "Number of days to add/subtract, or second date for Days Between"
         }
       }
     },
     {
       "typeDefinition": {
-        "name": "input3",
+        "name": "formatOptions",
         "type": "string",
         "fieldType": "text"
       },
-      "supportedValueTypes": ["OBJECT_PROPERTY"],
+      "supportedValueTypes": ["STATIC_VALUE"],
       "isRequired": false,
       "labels": {
         "en": {
-          "label": "Property 3",
-          "description": "Select a property to use in your formula"
+          "label": "Date Format",
+          "description": "Output format pattern (e.g. YYYY-MM-DD, MM/DD/YYYY, DD MMM YYYY)"
         }
       }
     }
@@ -101,7 +108,7 @@
       },
       "labels": {
         "en": {
-          "label": "Formula Result"
+          "label": "Formatted Result"
         }
       }
     },

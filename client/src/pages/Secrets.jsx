@@ -26,8 +26,9 @@ function Secrets() {
   const loadSecrets = async () => {
     try {
       setLoading(true)
+      setError(null)
       const { data } = await secretsApi.list()
-      setSecrets(data.secrets)
+      setSecrets(data.secrets || [])
     } catch (err) {
       setError(err.message)
     } finally {
