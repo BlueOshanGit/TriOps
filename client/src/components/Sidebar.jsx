@@ -8,39 +8,67 @@ const navItems = [
   { path: '/account', label: 'Account', icon: UserIcon }
 ]
 
-function Sidebar({ portal }) {
+function Sidebar({ portal, collapsed, onToggle }) {
   return (
-    <aside className="w-64 bg-white border-r border-hubspot-border flex flex-col">
+    <aside
+      className={`bg-white border-r border-hubspot-border flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-hubspot-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-hubspot-orange rounded flex items-center justify-center">
-            <span className="text-white font-bold text-sm">HH</span>
-          </div>
-          <div>
-            <h1 className="font-semibold text-hubspot-dark">HubHacks</h1>
-            <p className="text-xs text-hubspot-gray">HubSpot Integration</p>
-          </div>
+      <div className="p-3 border-b border-hubspot-border">
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+          {!collapsed && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-hubspot-orange rounded flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">HH</span>
+              </div>
+              <div className="overflow-hidden">
+                <h1 className="font-semibold text-hubspot-dark whitespace-nowrap">HubHacks</h1>
+                <p className="text-xs text-hubspot-gray whitespace-nowrap">HubSpot Integration</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={onToggle}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+            title={collapsed ? 'Open sidebar' : 'Close sidebar'}
+          >
+            {collapsed ? (
+              <svg className="w-5 h-5 text-hubspot-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-hubspot-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className={`flex-1 ${collapsed ? 'p-2' : 'p-4'}`}>
         <ul className="space-y-1">
           {navItems.map(item => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                title={item.label}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  `flex items-center rounded-lg transition-colors ${
+                    collapsed
+                      ? 'justify-center p-2.5'
+                      : 'gap-3 px-3 py-2'
+                  } ${
                     isActive
                       ? 'bg-hubspot-orange/10 text-hubspot-orange'
                       : 'text-hubspot-gray hover:bg-gray-100'
                   }`
                 }
               >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
               </NavLink>
             </li>
           ))}
@@ -49,15 +77,26 @@ function Sidebar({ portal }) {
 
       {/* Portal Info */}
       {portal && (
-        <div className="p-4 border-t border-hubspot-border">
-          <div className="text-xs text-hubspot-gray">
-            <p className="truncate" title={portal.hubDomain}>
-              {portal.hubDomain || `Portal ${portal.portalId}`}
-            </p>
-            <p className="truncate text-hubspot-gray/70" title={portal.userEmail}>
-              {portal.userEmail}
-            </p>
-          </div>
+        <div className={`border-t border-hubspot-border ${collapsed ? 'p-2' : 'p-4'}`}>
+          {collapsed ? (
+            <div
+              className="w-10 h-10 mx-auto bg-hubspot-orange/10 rounded-full flex items-center justify-center cursor-default"
+              title={`${portal.hubDomain || `Portal ${portal.portalId}`}\n${portal.userEmail}`}
+            >
+              <span className="text-hubspot-orange font-semibold text-sm">
+                {(portal.userEmail || 'U')[0].toUpperCase()}
+              </span>
+            </div>
+          ) : (
+            <div className="text-xs text-hubspot-gray">
+              <p className="truncate" title={portal.hubDomain}>
+                {portal.hubDomain || `Portal ${portal.portalId}`}
+              </p>
+              <p className="truncate text-hubspot-gray/70" title={portal.userEmail}>
+                {portal.userEmail}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </aside>

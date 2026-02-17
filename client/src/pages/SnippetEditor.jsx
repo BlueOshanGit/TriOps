@@ -75,11 +75,11 @@ function SnippetEditor() {
       setError(null)
 
       if (isNew) {
-        const { data } = await snippetsApi.create(snippet)
-        navigate(`/snippets/${data._id}`)
+        await snippetsApi.create(snippet)
       } else {
         await snippetsApi.update(id, snippet)
       }
+      navigate('/snippets')
     } catch (err) {
       setError(err.message)
     } finally {

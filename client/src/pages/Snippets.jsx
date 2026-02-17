@@ -104,26 +104,21 @@ function Snippets() {
 
       {/* Snippets list */}
       {!loading && snippets.length > 0 && (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {snippets.map(snippet => (
             <Link key={snippet._id} to={`/snippets/${snippet._id}`}>
-              <Card className="hover:border-hubspot-blue transition-colors cursor-pointer">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-hubspot-dark">{snippet.name}</h3>
-                    {snippet.description && (
-                      <p className="text-sm text-hubspot-gray mt-1 line-clamp-2">{snippet.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-3 text-xs text-hubspot-gray">
-                      <span>Updated {formatDate(snippet.updatedAt)}</span>
-                      <span>{snippet.executionCount} executions</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
+              <Card className="hover:border-hubspot-blue transition-colors cursor-pointer h-full">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-hubspot-dark truncate flex-1 mr-2">{snippet.name}</h3>
                     <Badge variant="info">v{snippet.version}</Badge>
-                    <svg className="w-5 h-5 text-hubspot-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  </div>
+                  {snippet.description && (
+                    <p className="text-sm text-hubspot-gray line-clamp-2 mb-3">{snippet.description}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-hubspot-border/50 text-xs text-hubspot-gray">
+                    <span>Updated {formatDate(snippet.updatedAt)}</span>
+                    <span>{snippet.executionCount} executions</span>
                   </div>
                 </div>
               </Card>
