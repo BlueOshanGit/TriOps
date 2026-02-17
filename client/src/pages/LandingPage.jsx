@@ -121,6 +121,12 @@ export default function LandingPage() {
       title: 'All HTTP Methods',
       description: 'Full support for REST APIs with GET, POST, PUT, PATCH, DELETE. Custom headers, query parameters, and JSON bodies.',
       color: 'from-indigo-500 to-purple-500'
+    },
+    {
+      icon: <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><text x="2" y="18" fontSize="16" fontWeight="bold" fill="currentColor" stroke="none">fx</text></svg>,
+      title: 'Format Data',
+      description: '20 built-in formula functions to transform data in workflows. Concat, upper, lower, trim, round, if, and more — no code required.',
+      color: 'from-teal-500 to-cyan-500'
     }
   ]
 
@@ -521,7 +527,7 @@ return {
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
+                <li><a href="/formula-reference" className="hover:text-white transition-colors">Documentation</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
               </ul>

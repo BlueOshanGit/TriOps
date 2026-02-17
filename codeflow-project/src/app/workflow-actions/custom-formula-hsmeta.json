@@ -76,19 +76,19 @@
     "labels": {
       "en": {
         "actionName": "Format Data: Custom Mode",
-        "actionDescription": "Transform data with custom formulas using built-in functions and math",
+        "actionDescription": "Build custom formulas with 20 built-in functions. See all functions: https://reena-noncorroborating-readily.ngrok-free.dev/formula-reference",
         "actionCardContent": "Custom formula",
         "inputFieldLabels": {
           "formula": "Formula",
-          "input1": "Property 1",
-          "input2": "Property 2",
-          "input3": "Property 3"
+          "input1": "Property 1 → use as [[input1]] in formula",
+          "input2": "Property 2 → use as [[input2]] in formula",
+          "input3": "Property 3 → use as [[input3]] in formula"
         },
         "inputFieldDescriptions": {
-          "formula": "Write your custom formula using text, math, and built-in functions like concat, upper, lower, trim, round, if, and more",
-          "input1": "Select a property to use in your formula",
-          "input2": "Select a property to use in your formula",
-          "input3": "Select a property to use in your formula"
+          "formula": "Use functions like concat, upper, lower, trim, round, if, and more. Use [[input1]] for properties. Full reference with examples: https://reena-noncorroborating-readily.ngrok-free.dev/formula-reference",
+          "input1": "Select a property. Reference it in your formula as [[input1]]",
+          "input2": "Select a property. Reference it in your formula as [[input2]]",
+          "input3": "Select a property. Reference it in your formula as [[input3]]"
         },
         "outputFieldLabels": {
           "hubhacks_success": "Success",

@@ -189,20 +189,38 @@ function splitArgs(argsString) {
   const args = [];
   let current = '';
   let depth = 0;
+  let inQuote = false;
 
   for (const char of argsString) {
-    if (char === '(') depth++;
-    else if (char === ')') depth--;
-    else if (char === ',' && depth === 0) {
-      args.push(current.trim());
-      current = '';
+    if (char === '"' && depth === 0) {
+      inQuote = !inQuote;
+      current += char;
       continue;
+    }
+    if (!inQuote) {
+      if (char === '(') depth++;
+      else if (char === ')') depth--;
+      else if (char === ',' && depth === 0) {
+        args.push(stripQuotes(current.trim()));
+        current = '';
+        continue;
+      }
     }
     current += char;
   }
-  if (current.trim()) args.push(current.trim());
+  if (current.trim()) args.push(stripQuotes(current.trim()));
 
   return args;
+}
+
+/**
+ * Strip surrounding double quotes from a string value
+ */
+function stripQuotes(value) {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 

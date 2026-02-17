@@ -111,14 +111,12 @@ app.use('/v1/secrets', secretsRoutes);
 app.use('/v1/logs', logsRoutes);
 app.use('/v1/usage', usageRoutes);
 
-// Serve static files from React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/dist')));
+// Serve static files from React app
+app.use(express.static(path.join(__dirname, 'client/dist')));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist/index.html'));
-  });
-}
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/dist/index.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
